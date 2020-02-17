@@ -111,35 +111,29 @@ class InvertedIndex:
         postings = OrderedDict(sorted(postings.items(), key=lambda item: item[0]))
         dictionary = OrderedDict(
             sorted(dictionary.items(), key=lambda item: item[0]))
-        # print(total_doc)
-        # print(dictionary)
-        # print(postings)
-        post_file = open(self.postings_file, 'wb+')
         dict_file = open(self.dictionary_file, 'wb+')
-        # print(list.sort(postings['year'][0]))
+        post_file = open(self.postings_file, 'wb+')
         # file->while( sort posting -> save posting and skip point -> tell -> save to offset of dictionary )-> dump dictionary
-        # outside while using wb
         pos = 0
         for key, value in postings.items():
             tmp = list(postings[key][0])
             tmp.sort()
-
-            pickle.dump(tmp, post_file)
-            pickle.dump(list(postings[key][1]), post_file)
+            #tmp = (str(postings[key]))
+            postings[key][0] = tmp
+            postings[key][1] = list(postings[key][1])
             pos = post_file.tell()
-            #print(pos)
             dictionary[key] = pos
+            pickle.dump(postings[key], post_file)
             #post_file.write(str(tmp))
-            #print(type(str(postings[key][1])))
-            # post_file.write(str(list(postings[key][1]))+'\n')
-            #print(type(str(postings[key][1])))
-            #pickle.dump(postings[key], dict_file)
-            #pos = post_file.tell()
+            #post_file.write(str(list(postings[key][1]))+'\n')
+            #post_file.write(str(postings[key])+'\n')
+            # pos = post_file.tell()
+            # dictionary[key]=pos
             #print(pos)
         # pickle.dump(list(total_doc), dict_file)
         pickle.dump(dictionary, dict_file)
-        # print(dictionary['year'])
-        # print(postings['year'])
+        print(dictionary['year'])
+        print(postings['year'])
         # dict_file.write(str(total_doc))
         # dict_file.write(str(dictionary))
         return
@@ -158,23 +152,20 @@ class InvertedIndex:
     """
 
     def LoadFile(self):
-        #dictionary = open(in_dir+"/"+input_file_dictionary,'r')
-        dictionary = pickle.load(open(in_dir+"/"+input_file_dictionary, 'rb'))
-        postings = open(in_dir+"/"+input_file_postings, 'rb')
-        # postings = pickle.load(open(in_dir+"/"+input_file_postings, 'rb'))
+        dictionary = pickle.load(
+            open(self.in_dir+"/"+self.dictionary_file, 'rb'))
+        postings = open(self.in_dir+"/"+self.postings_file, 'rb')
         total_doc = dictionary['  ']
-        print(total_doc)
+        #print(total_doc)
         # print(postings[dictionary['year'][1]])
         #print(dictionary[])
         postings.seek(int(dictionary['year']))
+        #line = postings.readline()
+        # postings_list = eval(line)
         #postings.readline()
         postings = pickle.load(postings)
-        # line = postings
+        print(dictionary['year'])
         print(postings)
-        # postings_list = eval(line)
-        # print(postings_list)
-        #print(postings_list[0])
-        # postings_list = ast.literal_eval(line)
         return total_doc, dictionary, postings
 if __name__ == '__main__':
 
