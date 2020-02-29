@@ -29,6 +29,82 @@ class SearchEngine:
         docIds: the list of docIds which match the query in increasing order
     """
     def search(self, expr):
+        # get the tokens from the expr
+        tokens = self._parse_expr(expr)
+        tokens.append('')
+
+        # get the posting lists from the InvertedIndex class
+        postings = {}
+
+        # execute the boolean operations in the expr by group
+        group_no = 0
+        last_type = False
+        exec_stack = []
+        for token in tokens:
+            if token == "NOT":
+                exec_stack[-1][1] = not exec_stack[-1][1]
+                continue
+
+            cur_type = token == 'AND' or token == 'OR'
+            same = token == exec_stack[-1] == token if exec_stack else False
+            
+            if last_type and not same:
+                group_no += 1
+                print('inter %d: op: %s: '%(group_no, exec_stack[-1]), end='')
+                self.exec_group(group_no, exec_stack, postings)
+
+            if cur_type:
+                exec_stack.append(token)
+            else:
+                exec_stack.append([token, False])
+                
+            last_type = cur_type
+
+        # return the list of docIds
+        print(exec_stack[0][0])
+
+    """ exec a group of boolean operations
+
+    Args:
+        retult_no: the intermediate term no
+        exec_stack: the stack holds operations and terms
+        postings: the dictionary with terms to posting lists mapping
+    """
+    def exec_group(self, result_no, exec_stack, postings):
+        terms = []
+        term_num = 1
+        while exec_stack and term_num:
+            last = exec_stack[-1]
+            if type(last) == str:
+                term_num += 1
+            else:
+                term_num -= 1
+                if last[1]:
+                    print('~', end='')
+                print(last[0], ' ', end='')
+                terms.append(last)
+                
+            exec_stack.pop()
+        print('')
+            
+        # change the execution order
+
+        # merge the posting lists
+        self.merge_group(terms, postings)
+
+        # add the intermediate term
+        exec_stack.append(['inter_%d'%(result_no), False])
+
+    """ merge the terms based on the order of the terms in the list
+
+    Args:
+        terms: the list of terms to be merged
+        postings: the dictionary with terms to posting lists mapping
+
+    Returns:
+        merged_list: return the merged list of the terms
+    """
+    def merge_group(self, terms, postings):
         pass
 
     """ parse the query based on the Shunting-yard algorithm
@@ -96,11 +172,11 @@ class SearchEngine:
 
         if start <= len(expr):
             tokens.append(expr[start:])
-
-        print(tokens)
+            
         return tokens
 
 if __name__ == '__main__':
 
     search_engine = SearchEngine('', '')
     print(search_engine._parse_expr('bill  OR Gates AND(vista OR XP)AND NOT mac'))
+    search_engine.search('bill  OR Gates AND(vista OR XP)AND NOT mac')
