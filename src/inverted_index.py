@@ -166,9 +166,6 @@ class InvertedIndex:
             open(self.dictionary_file, 'rb'))
         postings = open(self.postings_file, 'rb')
         total_doc = dictionary['  ']
-        #print(total_doc)
-        # print(postings[dictionary['year'][1]])
-        #print(dictionary[])
         postings.seek(int(dictionary['that']))
         #line = postings.readline()
         # postings_list = eval(line)
@@ -178,6 +175,48 @@ class InvertedIndex:
         print(postings)
         print('load file successfully!')
         return total_doc, dictionary, postings
+
+    """ load dictionary from file
+
+    Args: 
+        in_dir: working path
+        dictionary_file: the file path of the dictionary.
+        postings_file: the file path of the postings
+
+    Returns:
+        total_doc: total doc_id
+        dictionary: all word list
+    """
+
+    def LoadDict(self):
+        print('loading dictionary...')
+        dictionary = pickle.load(
+            open(self.dictionary_file, 'rb'))
+        total_doc = dictionary['  ']
+        return total_doc, dictionary
+    
+    """ load postings from file
+
+    Args: 
+        in_dir: working path
+        dictionary_file: the file path of the dictionary.
+        postings_file: the file path of the postings
+        term: word to be searched
+
+    Returns:
+        postings: set of doc_id
+    """
+    
+    def LoadPostings(self, term):
+        print('loading postings...')
+        dictionary = pickle.load(
+            open(self.dictionary_file, 'rb'))
+        postings = open(self.postings_file, 'rb')
+        postings.seek(int(dictionary[term]))
+        postings = pickle.load(postings)
+        print('load postings successfully!')
+        return postings
+
 if __name__ == '__main__':
 
     inverted_index = InvertedIndex(
@@ -186,7 +225,11 @@ if __name__ == '__main__':
     inverted_index.SavetoFile()
     print(inverted_index.dictionary['that'])
     print(inverted_index.postings['that'])
-    total_doc, dictionary, postings = inverted_index.LoadFile()
+    total_doc, dictionary = inverted_index.LoadDict()
+    postings = inverted_index.LoadPostings('that')
+    print(postings)
+    print(total_doc)
+    #total_doc, dictionary, postings = inverted_index.LoadFile()
     # print(dictionary['that'])
     # print(postings['that'])
         # print(search_engine._parse_expr('bill  OR Gates AND(vista OR XP)AND NOT mac'))
