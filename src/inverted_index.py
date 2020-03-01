@@ -15,20 +15,19 @@ from collections import OrderedDict
 
 
 class InvertedIndex:
+    dictionary = {}
     """ class InvertedIndex is a class dealing with building index, saving it to file and loading it
 
     Args:
-        in_dir: working path
         dictionary_file: the file path of the dictionary.
         postings_file: the file path of the postings
     """
 
-    def __init__(self, in_dir, dictionary_file, postings_file):
-        self.in_dir = in_dir
+    def __init__(self, dictionary_file, postings_file):
         self.dictionary_file = dictionary_file
         self.postings_file = postings_file
         self.total_doc = set([])
-        self.dictionary = {}
+        # self.dictionary = {}
         self.postings = {}
 
     """ build index from documents stored in the input directory,
@@ -42,17 +41,17 @@ class InvertedIndex:
         dictionary: all word list
         postings: set of doc_id
     """
-    def build_index(self):
+    def build_index(self, in_dir):
 
         print('indexing...')
-        files = os.listdir(self.in_dir)
+        files = os.listdir(in_dir)
         i = 0
         stop_words = set(stopwords.words('english'))
         for file in files:
             if i >= 500:
                 break
             if not os.path.isdir(file):
-                f = open(self.in_dir+"/"+file)
+                f = open(in_dir+"/"+file)
                 doc_id = file
                 self.total_doc.add(file)
                 iter_f = iter(f)
@@ -71,10 +70,10 @@ class InvertedIndex:
                                     self.postings[clean_token][0].add(int(doc_id))
                                 else:
                                     self.dictionary[clean_token] = ""
-                                    tempset = set([int(doc_id)])
                                     self.postings[clean_token] = [
                                         set([]), set([])]
-                                    self.postings[clean_token][0] = tempset
+                                    self.postings[clean_token][0] = set(
+                                        [int(doc_id)])
             i = i+1
         # add skip pointer
         for key, value in self.postings.items():
@@ -106,15 +105,15 @@ class InvertedIndex:
         # file->while( sort posting -> save posting and skip point -> tell -> save to offset of dictionary )-> dump dictionary
         pos = 0
         for key, value in self.postings.items():
-            tmp = list(self.postings[key][0])
-            tmp.sort()
+            # sort the posting list
+            tmp = np.sort(np.array(list(self.postings[key][0])))
             self.postings[key][0] = tmp
-            tmp = list(self.postings[key][1])
-            tmp.sort()
+            # sort the skip pointer list
+            tmp = np.sort(np.array(list(self.postings[key][1])))
             self.postings[key][1] = tmp
             pos = post_file.tell()
             self.dictionary[key] = pos
-            pickle.dump(self.postings[key], post_file)
+            np.save(post_file, self.postings[key], allow_pickle=True)
         pickle.dump(self.dictionary, dict_file)
         print('save to file successfully!')
         return
@@ -122,7 +121,6 @@ class InvertedIndex:
     """ load dictionary and postings from file
 
     Args: 
-        in_dir: working path
         dictionary_file: the file path of the dictionary.
         postings_file: the file path of the postings
 
@@ -137,16 +135,15 @@ class InvertedIndex:
         dictionary = pickle.load(
             open(self.dictionary_file, 'rb'))
         postings = open(self.postings_file, 'rb')
-        total_doc = dictionary['  ']
-        postings.seek(int(dictionary['that']))
+        total_doc = self.dictionary['  ']
+        postings.seek(int(self.dictionary['that']))
         postings = pickle.load(postings)
         print('load file successfully!')
-        return total_doc, dictionary, postings
+        return total_doc, self.dictionary, postings
 
     """ load dictionary from file
 
     Args: 
-        in_dir: working path
         dictionary_file: the file path of the dictionary.
         postings_file: the file path of the postings
 
@@ -157,16 +154,15 @@ class InvertedIndex:
 
     def LoadDict(self):
         print('loading dictionary...')
-        dictionary = pickle.load(
+        self.dictionary = pickle.load(
             open(self.dictionary_file, 'rb'))
-        total_doc = dictionary['  ']
+        total_doc = self.dictionary['  ']
         print('load dictionary successfully!')
-        return total_doc, dictionary
+        return total_doc, self.dictionary
     
     """ load postings from file
 
     Args: 
-        in_dir: working path
         dictionary_file: the file path of the dictionary.
         postings_file: the file path of the postings
         term: word to be searched
@@ -177,19 +173,17 @@ class InvertedIndex:
     
     def LoadPostings(self, term):
         print('loading postings...')
-        dictionary = pickle.load(
-            open(self.dictionary_file, 'rb'))
         postings = open(self.postings_file, 'rb')
-        postings.seek(int(dictionary[term]))
-        postings = pickle.load(postings)
+        postings.seek(int(self.dictionary[term]))
+        postings = np.load(postings, allow_pickle=True)
         print('load postings successfully!')
         return postings
 
 if __name__ == '__main__':
     # test the example: that
-    inverted_index = InvertedIndex(
-        '/Users/wangyifan/Google Drive/reuters/training', 'dictionary.txt', 'postings.txt')
-    inverted_index.build_index()
+    inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
+    inverted_index.build_index(
+        '/Users/wangyifan/Google Drive/reuters/training')
     inverted_index.SavetoFile()
     print("test the example: that")
     print(inverted_index.postings['that'])

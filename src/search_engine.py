@@ -43,6 +43,9 @@ class SearchEngine:
             'vista': (2, 5)
         }
 
+        postings_array = {
+            'that': 
+        }
         # execute the boolean operations in the expr by group
         group_no = 0
         last_type = False
