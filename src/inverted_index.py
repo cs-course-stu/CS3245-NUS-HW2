@@ -121,26 +121,6 @@ class InvertedIndex:
         print('save to file successfully!')
         return
 
-    """ load dictionary and postings from file
-
-    Args: 
-        dictionary_file: the file path of the dictionary.
-        postings_file: the file path of the postings
-
-    Returns:
-        total_doc: total doc_id
-        dictionary: all word list
-        postings: set of doc_id
-    """
-
-    def LoadFile(self):
-        print('loading file...')
-        with open(self.dictionary_file, 'rb') as f:
-            self.total_doc = pickle.load(f)
-            self.dictionary = pickle.load(f)
-
-        print('load file successfully!')
-
     """ load dictionary from file
 
     Args: 
