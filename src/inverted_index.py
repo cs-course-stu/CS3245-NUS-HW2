@@ -26,8 +26,8 @@ class InvertedIndex:
     def __init__(self, dictionary_file, postings_file):
         self.dictionary_file = dictionary_file
         self.postings_file = postings_file
-        self.total_doc = set([])
-        # self.dictionary = {}
+        self.total_doc = set()
+        self.dictionary = {}
         self.postings = {}
 
     """ build index from documents stored in the input directory,
@@ -45,42 +45,51 @@ class InvertedIndex:
 
         print('indexing...')
         files = os.listdir(in_dir)
-        i = 0
+        porter_stemmer = PorterStemmer()
         stop_words = set(stopwords.words('english'))
-        for file in files:
+
+        for i, file in enumerate(files):
             if i >= 500:
                 break
             if not os.path.isdir(file):
+                doc_id = int(file)
+                self.total_doc.add(doc_id)
+
                 f = open(in_dir+"/"+file)
-                doc_id = file
-                self.total_doc.add(file)
-                iter_f = iter(f)
-                for line in iter_f:
+                for line in iter(f):
                     # tokenize
                     tokens = [word for sent in nltk.sent_tokenize(
                         line) for word in nltk.word_tokenize(sent)]
                     for token in tokens:
                         # remove stopwords
-                        if token not in stop_words:
-                            # stemmer.lower
-                            porter_stemmer = PorterStemmer()
-                            clean_token = porter_stemmer.stem(token).lower()
-                            if clean_token.isalnum():
-                                if clean_token in self.dictionary:
-                                    self.postings[clean_token][0].add(int(doc_id))
-                                else:
-                                    self.dictionary[clean_token] = ""
-                                    self.postings[clean_token] = [
-                                        {int(doc_id)}, set()]
-            i = i+1
+                        if token in stop_words:
+                            continue
+
+                        # stemmer.lower
+                        clean_token = porter_stemmer.stem(token).lower()
+                        if not clean_token.isalnum():
+                            continue
+
+                        if clean_token in self.dictionary:
+                            self.postings[clean_token][0].add(doc_id)
+                        else:
+                            self.dictionary[clean_token] = 0
+                            self.postings[clean_token] = [{doc_id}]
+
         # add skip pointer
         for key, value in self.postings.items():
-            tmp = int(0)
             length = len(self.postings[key][0])
-            for i in range(int(np.sqrt(length))):
-                tmp = tmp + int((length-1)/(int(np.sqrt(length))))
-                if tmp != 0:
-                    self.postings[key][1].add(int(tmp))
+            num = int(np.sqrt(length))
+            strip = int(length / num)
+
+            last = strip
+            pointers = np.zeros((num, ), dtype = np.int32)
+            for i in range(0, num):
+                pointers[i] = last
+                last += strip
+
+            self.postings[key].append(pointers)
+
         print('build index successfully!')
 
     """ save dictionary and postings given fom build_index() to file
@@ -93,25 +102,21 @@ class InvertedIndex:
 
     def SavetoFile(self):
         print('saving to file...')
-        # sort
-        self.dictionary["  "] = sorted(self.total_doc)
-        self.postings = OrderedDict(sorted(self.postings.items(), key=lambda item: item[0]))
-        self.dictionary = OrderedDict(
-            sorted(self.dictionary.items(), key=lambda item: item[0]))
+
         dict_file = open(self.dictionary_file, 'wb+')
         post_file = open(self.postings_file, 'wb+')
         # file->while( sort posting -> save posting and skip point -> tell -> save to offset of dictionary )-> dump dictionary
         pos = 0
         for key, value in self.postings.items():
-            # sort the posting list
-            tmp = np.sort(np.array(list(self.postings[key][0])))
-            self.postings[key][0] = tmp
-            # sort the skip pointer list
-            tmp = np.sort(np.array(list(self.postings[key][1])))
-            self.postings[key][1] = tmp
             pos = post_file.tell()
             self.dictionary[key] = pos
-            np.save(post_file, self.postings[key], allow_pickle=True)
+
+            # sort the posting list
+            tmp = np.sort(np.array(list(self.postings[key][0]), dtype = np.int32))
+            np.save(post_file, tmp, allow_pickle=True)
+            np.save(post_file, self.postings[key][1], allow_pickle=True)
+
+        pickle.dump(self.total_doc, dict_file)
         pickle.dump(self.dictionary, dict_file)
         print('save to file successfully!')
         return
@@ -130,14 +135,11 @@ class InvertedIndex:
 
     def LoadFile(self):
         print('loading file...')
-        dictionary = pickle.load(
-            open(self.dictionary_file, 'rb'))
-        postings = open(self.postings_file, 'rb')
-        total_doc = self.dictionary['  ']
-        postings.seek(int(self.dictionary['that']))
-        postings = pickle.load(postings)
+        with open(self.dictionary_file, 'rb') as f:
+            self.total_doc = pickle.load(f)
+            self.dictionary = pickle.load(f)
+
         print('load file successfully!')
-        return total_doc, self.dictionary, postings
 
     """ load dictionary from file
 
@@ -152,11 +154,12 @@ class InvertedIndex:
 
     def LoadDict(self):
         print('loading dictionary...')
-        self.dictionary = pickle.load(
-            open(self.dictionary_file, 'rb'))
-        total_doc = self.dictionary['  ']
+        with open(self.dictionary_file, 'rb') as f:
+            self.total_doc = pickle.load(f)
+            self.dictionary = pickle.load(f)
+
         print('load dictionary successfully!')
-        return total_doc, self.dictionary
+        return self.total_doc, self.dictionary
     
     """ load postings from file
 
@@ -171,17 +174,16 @@ class InvertedIndex:
     
     def LoadPostings(self, term):
         print('loading postings...')
-        postings = open(self.postings_file, 'rb')
-        postings.seek(int(self.dictionary[term]))
-        postings = np.load(postings, allow_pickle=True)
+        with open(self.postings_file, 'rb') as f:
+            f.seek(self.dictionary[term])
+            postings = np.load(f, allow_pickle=True)
         print('load postings successfully!')
         return postings
 
 if __name__ == '__main__':
     # test the example: that
     inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
-    inverted_index.build_index(
-        '/Users/wangyifan/Google Drive/reuters/training')
+    inverted_index.build_index('../../reuters/training')
     inverted_index.SavetoFile()
     print("test the example: that")
     print(inverted_index.postings['that'])
