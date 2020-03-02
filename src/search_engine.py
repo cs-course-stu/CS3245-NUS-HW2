@@ -214,6 +214,15 @@ class SearchEngine:
         result = np.frombuffer(result, dtype=np.int32)
         return (result, self.index.CreateSkipPointers(result.size))
 
+    """ get the postings list of the term
+
+    Args:
+        term: the term which wants to the corresponding postings list
+        postings_lists: the dictionary with terms to posting lists mapping
+
+    Returns:
+        postings: the postings list corresponding to the term
+    """
     def _get_postings(self, term, postings_lists):
         if not term[1]:
             return postings_lists[term[0]]
