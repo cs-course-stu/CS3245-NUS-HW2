@@ -71,9 +71,7 @@ class InvertedIndex:
                                 else:
                                     self.dictionary[clean_token] = ""
                                     self.postings[clean_token] = [
-                                        set([]), set([])]
-                                    self.postings[clean_token][0] = set(
-                                        [int(doc_id)])
+                                        {int(doc_id)}, set()]
             i = i+1
         # add skip pointer
         for key, value in self.postings.items():
