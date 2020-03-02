@@ -29,6 +29,7 @@ class InvertedIndex:
         self.total_doc = set()
         self.dictionary = {}
         self.postings = {}
+        self.file_handle = None
 
     """ build index from documents stored in the input directory,
         then output the dictionary file and postings file
@@ -79,15 +80,7 @@ class InvertedIndex:
         # add skip pointer
         for key, value in self.postings.items():
             length = len(self.postings[key][0])
-            num = int(np.sqrt(length))
-            strip = int(length / num)
-
-            last = strip
-            pointers = np.zeros((num, ), dtype = np.int32)
-            for i in range(0, num):
-                pointers[i] = last
-                last += strip
-
+            pointers = self.CreateSkipPointers(length)
             self.postings[key].append(pointers)
 
         print('build index successfully!')
@@ -113,9 +106,9 @@ class InvertedIndex:
 
             # sort the posting list
             tmp = np.sort(np.array(list(self.postings[key][0]), dtype = np.int32))
-            #np.save(post_file, tmp, allow_pickle=True)
             self.postings[key][0] = tmp
-            np.save(post_file, self.postings[key], allow_pickle=True)
+            np.save(post_file, tmp, allow_pickle=True)
+            np.save(post_file, self.postings[key][1], allow_pickle=True)
 
         pickle.dump(self.total_doc, dict_file)
         pickle.dump(self.dictionary, dict_file)
@@ -139,6 +132,8 @@ class InvertedIndex:
             self.total_doc = pickle.load(f)
             self.dictionary = pickle.load(f)
 
+        self.file_hande = open(self.postings_file, 'rb')
+
         print('load dictionary successfully!')
         return self.total_doc, self.dictionary
     
@@ -154,40 +149,67 @@ class InvertedIndex:
     """
     
     def LoadPostings(self, term):
+        if not self.file_handle:
+            self.file_handle = open(self.postings_file, 'rb')
+
         print('loading postings...')
-        with open(self.postings_file, 'rb') as f:
-            f.seek(self.dictionary[term])
-            postings = np.load(f, allow_pickle=True)
+        self.file_handle.seek(self.dictionary[term])
+        postings = np.load(self.file_handle, allow_pickle=True)
+        pointers = np.load(self.file_handle, allow_pickle=True)
         print('load postings successfully!')
-        return postings
+        return (postings, pointers)
 
+    def CreateSkipPointers(self, length):
+        if length <= 1:
+            return np.zeros((0,), dtype=np.int32)
 
-    def Create_Skip_pointer(self, array):
-        skip_pointer = []
-        length = len(array)
         num = int(np.sqrt(length))
-        strip = int(length / num)
-        last = strip
-        pointers = np.zeros((num, ), dtype=np.int32)
-        for i in range(0, num):
-                pointers[i] = last
-                last += strip
+        strip = int((length - 1) / num)
+        pointers = np.zeros((num + 1, ), dtype = np.int32)
+        for i in range(1, num + 1):
+            pointers[i] = pointers[i - 1] + strip
 
-        #self.postings[key].append(pointers)
         return pointers
+
+    """ load multiple postings lists from file
+
+    Args:
+        terms: the list of terms need to be loaded
+
+    Returns:
+        postings_lists: the postings lists correspond to the terms
+    """
+    def LoadTerms(self, terms):
+        if not self.file_handle:
+            self.file_handle = open(self.postings_file, 'rb')
+
+        ret = {}
+        for term in terms:
+            if term in self.dictionary:
+                self.file_handle.seek(self.dictionary[term])
+                postings = np.load(self.file_handle, allow_pickle=True)
+                pointers = np.load(self.file_handle, allow_pickle=True)
+            else:
+                postings = np.zeros((0, ))
+                pointers = np.zeros((0, ))
+            ret[term] = (postings, pointers)
+
+        return ret
 
 if __name__ == '__main__':
     # test the example: that
     inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
-    #inverted_index.build_index('../../reuters/training')
-    inverted_index.build_index(
-        '/Users/wangyifan/Google Drive/reuters/training')
+    inverted_index.build_index('../../reuters/training')
+    #inverted_index.build_index(
+    #    '/Users/wangyifan/Google Drive/reuters/training')
     inverted_index.SavetoFile()
     print("test the example: that")
     print(inverted_index.postings['that'])
     total_doc, dictionary = inverted_index.LoadDict()
     postings = inverted_index.LoadPostings('that')
     print(postings)
-    skip_pointer = inverted_index.Create_Skip_pointer([1201,  1808,  1839,  5690,  7765,  7937,  8186,  8746,  9295,
-                                        9667, 10455, 10804, 12507, 14055])
-    print(skip_pointer[2])
+
+    postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
+    for term, postings in postings_lists.items():
+        print(term, ": ", postings)
+

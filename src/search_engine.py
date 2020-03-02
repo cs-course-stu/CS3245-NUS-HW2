@@ -2,8 +2,9 @@
 
 import sys
 import math
-from collections import deque
-
+import array
+import numpy as np
+from inverted_index import InvertedIndex
 
 class SearchEngine:
     """ SearchEngine is a class dealing with real-time querying
@@ -18,7 +19,9 @@ class SearchEngine:
         self.dictionary_file = dictionary_file
         self.postings_file = postings_file
 
-        # self.index = InvertedIndex()
+        self.index = InvertedIndex(dictionary_file, postings_file)
+        self.doc_set, self.dictionary = self.index.LoadDict()
+        self.total_postings = np.array(list(self.doc_set), dtype = np.int32)
 
     """ search and return docIds according to the boolean expression
 
@@ -34,18 +37,8 @@ class SearchEngine:
 
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
-        postings = {
-            ' ': (1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-            'mac': (4, ),
-            'XP': (1, 2, 3),
-            'Gates': (4, 5, 6),
-            'bill': (7, 8, 9, 10),
-            'vista': (2, 5)
-        }
+        postings_lists = self.index.LoadTerms(terms)
 
-        postings_array = {
-            'that': 
-        }
         # execute the boolean operations in the expr by group
         group_no = 0
         last_type = False
@@ -63,7 +56,7 @@ class SearchEngine:
             if last_type and not same:
                 group_no += 1
                 print('inter %d: '%(group_no), end='')
-                self._exec_group(exec_stack, postings)
+                self._exec_group(exec_stack, postings_lists)
 
             if cur_type:
                 exec_stack.append(token)
@@ -73,15 +66,15 @@ class SearchEngine:
             last_type = cur_type
 
         # return the list of docIds
-        return postings[exec_stack[0][0]]
+        return postings[exec_stack[0][0]][0]
 
     """ exec a group of boolean operations
 
     Args:
         exec_stack: the stack holds operations and terms
-        postings: the dictionary with terms to posting lists mapping
+        postings_lists: the dictionary with terms to posting lists mapping
     """
-    def _exec_group(self, exec_stack, postings):
+    def _exec_group(self, exec_stack, postings_lists):
         assert exec_stack, 'empty execution stack'
 
         terms = []
@@ -105,34 +98,33 @@ class SearchEngine:
             
         # change the execution order
         print("before: ", terms)
-        self._optimize_merge(terms, postings)
+        self._optimize_merge(terms, postings_lists)
         print("after: ", terms)
 
         # merge the posting lists
-        result = self._merge_group(op, terms, postings)
+        result = self._merge_group(op, terms, postings_lists)
         print(result)
 
         # add the intermediate term
         exec_stack.append(['  ', False, 0])
-        postings['  '] = result
+        postings_lists['  '] = (result, np.empty())
 
     """ optimize the merging process based on merging cost
 
     Agrs:
         terms: the terms need to be merged
-        postings: the dictionary with terms to posting lists mapping
+        postings_lists: the dictionary with terms to posting lists mapping
 
     Returns:
         terms: the list in optimized merging order
     """
-    def _optimize_merge(self, terms, postings):
-        total_size = len(postings[' '])
+    def _optimize_merge(self, terms, postings_lists):
+        total_size = self.total_postings.size
 
         for i, term in enumerate(terms):
+            term[2] = len(postings_lists[term[0]][0])
             if term[1]:
-                term[2] = total_size - len(postings[term[0]])
-            else:
-                term[2] = len(postings[term[0]])
+                term[2] = total_size - term[2]
 
         terms.sort(key=lambda key: key[2])
 
@@ -143,25 +135,20 @@ class SearchEngine:
     Args:
         op: the type of merging operation
         terms: the list of terms to be merged
-        postings: the dictionary with terms to posting lists mapping
+        postings_lists: the dictionary with terms to posting lists mapping
 
     Returns:
         result: return the merged list of the terms
     """
-    def _merge_group(self, op,  terms, postings):
-        total_docIds = set(postings[' '])
+    def _merge_group(self, op, terms, postings_lists):
+        total_docIds = self.total_postings
 
-        result_set = set(postings[terms[0][0]])
-        result_set = result_set if not terms[0][1] else total_docIds - result_set
+        result_set = self._get_postings(terms[0], postings_lists)
         for i in range(1, len(terms)):
-            right_set = set(postings[terms[i][0]])
-            right_set = right_set if not terms[i][1] else total_docIds - right_set
-            if op == 'AND':
-                result_set = result_set & right_set
-            elif op == 'OR':
-                result_set = result_set | right_set
+            right_set = self._get_postings(terms[i], postings_lists)
+            result_set = self._merge_postings(result_set, op, right_set)
 
-        return tuple(result_set)
+        return result_set
 
     """ merge the two sets passed in based on the op type
 
@@ -170,12 +157,74 @@ class SearchEngine:
         set1: the set on the left hand side to be merged
         set2: the set on the right hand side to be merged
     """
-    def _merge_postings(self, set1, op, set2, total_docIds):
-        if set1[1] == True:
-            set1, set2 = set2, set1
+    def _merge_postings(self, set1, op, set2):
+        p1, p2 = 0, 0
+        skip1, skip2 = 0, 0
+        postings1, pointers1 = set1[0], set1[1]
+        postings2, pointers2 = set2[0], set2[1]
+        len1, len2 = postings1.size, postings2.size
+        sk_len1, sk_len2 = pointers1.size, pointers2.size
+        result = array.array('l')
+        if op == 'AND':
+            while p1 < len1 and p2 < len2:
+                doc1, doc2 = postings1[p1], postings2[p2]
+                if doc1 == doc2:
+                    result.append(doc1)
+                    p1, p2 = p1 + 1, p2 + 1
+                elif doc1 < doc2:
+                    if skip1 < sk_len1-1 and postings1[pointers1[skip1]] <= doc2:
+                        p1, skip1 = pointers1[skip1], skip1 + 1
+                    else:
+                        p1 += 1
+                else:
+                    if skip2 < sk_len2-1 and postings2[pointers2[skip2]] <= doc1:
+                        p2, skip2 = pointers2[skip2], skip2 + 1
+                    else:
+                        p2 += 1
+        elif op == 'OR':
+            while p1 < len1 and p2 < len2:
+                doc1, doc2 = postings1[p1], postings2[p2]
+                if doc1 == doc2:
+                    result.append(doc1)
+                    p1, p2 = p1 + 1, p2 + 1
+                elif doc1 < doc2:
+                    result.append(doc1)
+                    if skip1 < sk_len1-1 and postings1[pointers1[skip1]] <= doc2:
+                        for p in range(p1+1, pointers1[skip1]):
+                            result.append(postings1[p])
+                        p1, skip1 = pointers1[skip1], skip1 + 1
+                    else:
+                        p1 += 1
+                else:
+                    if skip2 < sk_len2-1 and postings2[pointers2[skip2]] <= doc1:
+                        for p in range(p2+1, pointers2[skip2]):
+                            result.append(postings2[p])
+                        p2, skip2 = pointers2[skip2], skip2 + 1
+                    else:
+                        p2 += 1
+            while p1 < len1:
+                result.append(postings1[p1])
+                p1 += 1
+            while p2 < len2:
+                result,append(postings2[p2])
+                p2 += 1
 
-        result = []
+        result = np.frombuffer(result, dtype=np.int32)
         return result
+
+    def _get_postings(self, term, postings_lists):
+        if not term[1]:
+            return postings_lists[term[0]]
+
+        not_term = '~' + term[0]
+        if not_term in postings_lists:
+            return postings_lists[not_term]
+        else:
+            postings = postings_lists[term[0]][0]
+            postings = np.setdiff1d(self.total_postings, postings)
+            postings = (postings, np.empty())
+            postings_lists[not_term] = postings
+            return postings
 
     """ parse the query based on the Shunting-yard algorithm
 
@@ -250,5 +299,5 @@ class SearchEngine:
 
 if __name__ == '__main__':
 
-    search_engine = SearchEngine('', '')
+    search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('bill  OR Gates AND(vista OR XP)AND NOT mac'))
