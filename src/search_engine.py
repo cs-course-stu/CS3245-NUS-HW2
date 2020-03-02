@@ -66,7 +66,7 @@ class SearchEngine:
             last_type = cur_type
 
         # return the list of docIds
-        return postings[exec_stack[0][0]][0]
+        return postings_lists[exec_stack[0][0]][0]
 
     """ exec a group of boolean operations
 
@@ -103,11 +103,10 @@ class SearchEngine:
 
         # merge the posting lists
         result = self._merge_group(op, terms, postings_lists)
-        print(result)
 
         # add the intermediate term
         exec_stack.append(['  ', False, 0])
-        postings_lists['  '] = (result, np.empty())
+        postings_lists['  '] = result
 
     """ optimize the merging process based on merging cost
 
@@ -146,7 +145,10 @@ class SearchEngine:
         result_set = self._get_postings(terms[0], postings_lists)
         for i in range(1, len(terms)):
             right_set = self._get_postings(terms[i], postings_lists)
+            print("left_set: ", result_set)
+            print("right_set: ", right_set)
             result_set = self._merge_postings(result_set, op, right_set)
+            print("result_set: ", result_set)
 
         return result_set
 
@@ -164,7 +166,7 @@ class SearchEngine:
         postings2, pointers2 = set2[0], set2[1]
         len1, len2 = postings1.size, postings2.size
         sk_len1, sk_len2 = pointers1.size, pointers2.size
-        result = array.array('l')
+        result = array.array('i')
         if op == 'AND':
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
@@ -206,11 +208,11 @@ class SearchEngine:
                 result.append(postings1[p1])
                 p1 += 1
             while p2 < len2:
-                result,append(postings2[p2])
+                result.append(postings2[p2])
                 p2 += 1
 
         result = np.frombuffer(result, dtype=np.int32)
-        return result
+        return (result, self.index.CreateSkipPointers(result.size))
 
     def _get_postings(self, term, postings_lists):
         if not term[1]:
@@ -222,7 +224,7 @@ class SearchEngine:
         else:
             postings = postings_lists[term[0]][0]
             postings = np.setdiff1d(self.total_postings, postings)
-            postings = (postings, np.empty())
+            postings = (postings, self.index.CreateSkipPointers(postings.size))
             postings_lists[not_term] = postings
             return postings
 
