@@ -10,7 +10,6 @@ def usage():
 
 def build_index(in_dir, out_dict, out_postings):
 
-
     """
     build index from documents stored in the input directory,
     then output the dictionary file and postings file
