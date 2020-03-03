@@ -34,6 +34,7 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
+        
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
         postings_lists = self.index.LoadTerms(terms)
@@ -46,7 +47,11 @@ class SearchEngine:
         tokens.append('')
         for token in tokens:
             if token == "NOT":
+                if type(exec_stack[-1]) == str:
+                    group_no += 1
+                    self._exec_group(group_no, exec_stack, postings_lists)
                 exec_stack[-1][1] = not exec_stack[-1][1]
+                last_type = False
                 continue
 
             cur_type = token == 'AND' or token == 'OR'
@@ -55,7 +60,7 @@ class SearchEngine:
             if last_type and not same:
                 group_no += 1
                 # print('inter %d: '%(group_no), end='')
-                self._exec_group(exec_stack, postings_lists)
+                self._exec_group(group_no, exec_stack, postings_lists)
 
             if cur_type:
                 exec_stack.append(token)
@@ -65,15 +70,16 @@ class SearchEngine:
             last_type = cur_type
 
         # return the list of docIds
-        return postings_lists[exec_stack[0][0]][0]
+        return self._get_postings(exec_stack[0], postings_lists)[0]
 
     """ exec a group of boolean operations
 
     Args:
+        group_no: the no. of the group
         exec_stack: the stack holds operations and terms
         postings_lists: the dictionary with terms to posting lists mapping
     """
-    def _exec_group(self, exec_stack, postings_lists):
+    def _exec_group(self, group_no, exec_stack, postings_lists):
         assert exec_stack, 'empty execution stack'
 
         terms = []
@@ -104,8 +110,8 @@ class SearchEngine:
         result = self._merge_group(op, terms, postings_lists)
 
         # add the intermediate term
-        exec_stack.append(['  ', False, 0])
-        postings_lists['  '] = result
+        exec_stack.append(['  %d'%group_no, False, 0])
+        postings_lists['  %d'%group_no] = result
 
     """ optimize the merging process based on merging cost
 
@@ -302,7 +308,7 @@ class SearchEngine:
 
                 start = i + 1
 
-        if start <= len(expr):
+        if start < len(expr):
             tokens.append(expr[start:])
 
         return tokens
@@ -312,5 +318,5 @@ if __name__ == '__main__':
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('bill  OR Gates AND(vista OR XP)AND NOT mac'))
     print(search_engine.search('NOT mac'))
-    #print(search_engine.search(
-        #'(mere AND dram) OR NOT NOT (mere AND dram) OR NOT NOT (mere AND dram)'))
+    print(search_engine.search(
+        '(mere AND dram) OR NOT NOT (mere AND dram) OR NOT NOT (mere AND dram)'))
