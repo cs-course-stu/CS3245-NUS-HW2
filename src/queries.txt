@@ -16,6 +16,7 @@ grower AND NOT relief
 (dean OR kenneth OR douglas) AND (dean OR kenneth OR douglas) AND dean
 (BAHIA OR COCOA) AND (NOT BAHIA AND COCOA)
 (BAHIA OR COCOA) AND (NOT BAHIA AND COCOA) OR BAHIA
-(mere AND dram) OR NOT NOT (mere AND dram) OR NOT NOT (mere AND dram)
+(mere AND dram) OR NOT NOT (dram AND micron) OR NOT NOT (mere AND dram) OR (mere AND dram)
+(, AND the) AND (in AND and) AND NOT NOT (for AND come) AND (in AND and) AND NOT NOT (in AND and)
 NOT NOT BAHIA
 NOT NOT NOT NOT BAHIA

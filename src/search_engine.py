@@ -318,4 +318,5 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    print(search_engine.search('dean OR kenneth OR douglas'))
+    print(search_engine.search('(dean OR kenneth OR douglas) AND dean'))
+#18 748 1153 1792 2922 3149 4005 4290 5888 10080 10553 10564 10565 11083 11746 12050 12337 13053
