@@ -1,14 +1,7 @@
 import numpy as np
-import linecache
-import re
-import nltk
-import sys
-import getopt
-import linecache
 import os
 import nltk
 import pickle
-import ast
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import stopwords
 from collections import OrderedDict
@@ -19,8 +12,8 @@ class InvertedIndex:
     """ class InvertedIndex is a class dealing with building index, saving it to file and loading it
 
     Args:
-        dictionary_file: the file path of the dictionary.
-        postings_file: the file path of the postings
+        dictionary_file: the name of the dictionary.
+        postings_file: the name of the postings
     """
 
     def __init__(self, dictionary_file, postings_file):
@@ -36,11 +29,6 @@ class InvertedIndex:
 
     Args: 
         in_dir: working path
-
-    Returns:
-        total_doc: total doc_id
-        dictionary: all word list
-        postings: set of doc_id
     """
     def build_index(self, in_dir):
 
@@ -86,11 +74,6 @@ class InvertedIndex:
         print('build index successfully!')
 
     """ save dictionary and postings given fom build_index() to file
-
-    Args: 
-        total_doc: total doc_id
-        dictionary: all word list
-        postings: set of doc_id
     """
 
     def SavetoFile(self):
@@ -98,28 +81,27 @@ class InvertedIndex:
 
         dict_file = open(self.dictionary_file, 'wb+')
         post_file = open(self.postings_file, 'wb+')
-        # file->while( sort posting -> save posting and skip point -> tell -> save to offset of dictionary )-> dump dictionary
         pos = 0
         for key, value in self.postings.items():
+            # save the offset of dictionary
             pos = post_file.tell()
             self.dictionary[key] = pos
 
             # sort the posting list
             tmp = np.sort(np.array(list(self.postings[key][0]), dtype = np.int32))
             self.postings[key][0] = tmp
+
+            # save postings and skip pointers
             np.save(post_file, tmp, allow_pickle=True)
             np.save(post_file, self.postings[key][1], allow_pickle=True)
 
+        # save total_doc and dictionary
         pickle.dump(self.total_doc, dict_file)
         pickle.dump(self.dictionary, dict_file)
         print('save to file successfully!')
         return
 
     """ load dictionary from file
-
-    Args: 
-        dictionary_file: the file path of the dictionary.
-        postings_file: the file path of the postings
 
     Returns:
         total_doc: total doc_id
@@ -140,12 +122,10 @@ class InvertedIndex:
     """ load postings from file
 
     Args: 
-        dictionary_file: the file path of the dictionary.
-        postings_file: the file path of the postings
         term: word to be searched
 
     Returns:
-        postings: set of doc_id
+        (postings, pointers): doc_id and skip pointers of given term
     """
     
     def LoadPostings(self, term):
@@ -158,6 +138,15 @@ class InvertedIndex:
         pointers = np.load(self.file_handle, allow_pickle=True)
         print('load postings successfully!')
         return (postings, pointers)
+
+    """ create skip pointers
+
+    Args: 
+        length: length of postings
+
+    Returns:
+        pointers: array of skip pointers
+    """
 
     def CreateSkipPointers(self, length):
         if length <= 1:
@@ -199,9 +188,9 @@ class InvertedIndex:
 if __name__ == '__main__':
     # test the example: that
     inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
-    inverted_index.build_index('../../reuters/training')
-    #inverted_index.build_index(
-    #    '/Users/wangyifan/Google Drive/reuters/training')
+    #inverted_index.build_index('../../reuters/training')
+    inverted_index.build_index(
+       '/Users/wangyifan/Google Drive/reuters/training')
     inverted_index.SavetoFile()
     print("test the example: that")
     print(inverted_index.postings['that'])
