@@ -34,7 +34,6 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
-
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
         postings_lists = self.index.LoadTerms(terms)
@@ -312,3 +311,6 @@ if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('bill  OR Gates AND(vista OR XP)AND NOT mac'))
+    print(search_engine.search('NOT mac'))
+    #print(search_engine.search(
+        #'(mere AND dram) OR NOT NOT (mere AND dram) OR NOT NOT (mere AND dram)'))

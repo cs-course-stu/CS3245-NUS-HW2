@@ -3,6 +3,7 @@ import re
 import nltk
 import sys
 import getopt
+from search_engine import SearchEngine
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -13,8 +14,19 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     perform searching on the given queries file and output the results to a file
     """
     print('running search on the queries...')
-    # This is an empty method
-    # Pls implement your code in below
+    # load the dictionary
+    #inverted_index = InvertedIndex(dict_file, postings_file)
+    #output: results_file output.txt
+    # initialize the class
+    search_engine = SearchEngine('dictionary.txt', 'postings.txt')
+
+    with open(queries_file, 'r') as file:
+        i =0
+        for line in file:
+            i=i+1
+            print(search_engine.search(line))
+        print(i)
+    return
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None
 
