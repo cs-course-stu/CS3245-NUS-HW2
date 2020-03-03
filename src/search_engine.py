@@ -55,7 +55,7 @@ class SearchEngine:
             
             if last_type and not same:
                 group_no += 1
-                print('inter %d: '%(group_no), end='')
+                # print('inter %d: '%(group_no), end='')
                 self._exec_group(exec_stack, postings_lists)
 
             if cur_type:
@@ -86,20 +86,20 @@ class SearchEngine:
                 term_num += 1
             else:
                 term_num -= 1
-                if last[1]:
-                    print('~', end='')
-                print("'%s'"%last[0], end='')
-                if term_num:
-                    print(' %s '%op, end='')
+                #if last[1]:
+                    # print('~', end='')
+                # print("'%s'"%last[0], end='')
+                #if term_num:
+                    # print(' %s '%op, end='')
                 terms.append(last)
                 
             exec_stack.pop()
-        print('')
+        # print('')
             
         # change the execution order
-        print("before: ", terms)
+        # print("before: ", terms)
         self._optimize_merge(terms, postings_lists)
-        print("after: ", terms)
+        # print("after: ", terms)
 
         # merge the posting lists
         result = self._merge_group(op, terms, postings_lists)
@@ -145,10 +145,10 @@ class SearchEngine:
         result_set = self._get_postings(terms[0], postings_lists)
         for i in range(1, len(terms)):
             right_set = self._get_postings(terms[i], postings_lists)
-            print("left_set: ", result_set)
-            print("right_set: ", right_set)
+            # print("left_set: ", result_set)
+            # print("right_set: ", right_set)
             result_set = self._merge_postings(result_set, op, right_set)
-            print("result_set: ", result_set)
+            # print("result_set: ", result_set)
 
         return result_set
 
