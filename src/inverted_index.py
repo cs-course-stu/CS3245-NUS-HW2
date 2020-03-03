@@ -42,12 +42,9 @@ class InvertedIndex:
         stop_words = set(stopwords.words('english'))
 
         for i, file in enumerate(files):
-            if i >= 500:
-                break
             if not os.path.isdir(file):
                 doc_id = int(file)
                 self.total_doc.add(doc_id)
-
                 f = open(in_dir+"/"+file)
                 for line in iter(f):
                     # tokenize
@@ -55,20 +52,17 @@ class InvertedIndex:
                         line) for word in nltk.word_tokenize(sent)]
                     for token in tokens:
                         # remove stopwords
-                        if token in stop_words:
-                            continue
-
+                        # if token in stop_words:
+                        #     continue
                         # stemmer.lower
                         clean_token = porter_stemmer.stem(token).lower()
                         if not clean_token.isalnum():
                             continue
-
                         if clean_token in self.dictionary:
                             self.postings[clean_token][0].add(doc_id)
                         else:
                             self.dictionary[clean_token] = 0
                             self.postings[clean_token] = [{doc_id}]
-
         # add skip pointer
         for key, value in self.postings.items():
             length = len(self.postings[key][0])
@@ -131,7 +125,7 @@ class InvertedIndex:
     Returns:
         (postings, pointers): doc_id and skip pointers of given term
     """
-    
+
     def LoadPostings(self, term):
         if not self.file_handle:
             self.file_handle = open(self.postings_file, 'rb')
@@ -171,6 +165,7 @@ class InvertedIndex:
     Returns:
         postings_lists: the postings lists correspond to the terms
     """
+
     def LoadTerms(self, terms):
         if not self.file_handle:
             self.file_handle = open(self.postings_file, 'rb')
@@ -192,13 +187,13 @@ if __name__ == '__main__':
     # test the example: that
     inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
     #inverted_index.build_index('../../reuters/training')
-    inverted_index.build_index(
-       '/Users/wangyifan/Google Drive/reuters/training')
-    inverted_index.SavetoFile()
-    print("test the example: that")
-    print(inverted_index.postings['that'])
+    # inverted_index.build_index(
+    #    '/Users/wangyifan/Google Drive/reuters/training')
+    # inverted_index.SavetoFile()
+    print("test the example: her")
+    #print(inverted_index.postings['her'])
     total_doc, dictionary = inverted_index.LoadDict()
-    postings = inverted_index.LoadPostings('that')
+    postings = inverted_index.LoadPostings('I')
     print(postings)
 
     postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
