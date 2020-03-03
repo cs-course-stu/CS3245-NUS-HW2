@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import sys
 import nltk
 import pickle
 from nltk.stem.porter import PorterStemmer
@@ -33,6 +34,9 @@ class InvertedIndex:
     def build_index(self, in_dir):
 
         print('indexing...')
+        if (not os.path.exists(in_dir)):
+            print("wrong file path!")
+            sys.exit(2)
         files = os.listdir(in_dir)
         porter_stemmer = PorterStemmer()
         stop_words = set(stopwords.words('english'))
@@ -157,7 +161,6 @@ class InvertedIndex:
         pointers = np.zeros((num + 1, ), dtype = np.int32)
         for i in range(1, num + 1):
             pointers[i] = pointers[i - 1] + strip
-
         return pointers
 
     """ load multiple postings lists from file

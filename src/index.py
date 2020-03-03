@@ -3,18 +3,25 @@ import re
 import nltk
 import sys
 import getopt
+from inverted_index import InvertedIndex
 
 def usage():
     print("usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file")
 
 def build_index(in_dir, out_dict, out_postings):
+
+
     """
     build index from documents stored in the input directory,
     then output the dictionary file and postings file
     """
-    print('indexing...')
-    # This is an empty method
-    # Pls implement your code in below
+    # print('indexing...')
+    # initialize the class
+    inverted_index = InvertedIndex(out_dict, out_postings)
+    inverted_index.build_index(
+        in_dir)
+    # save to file
+    inverted_index.SavetoFile()
 
 input_directory = output_file_dictionary = output_file_postings = None
 
