@@ -5,6 +5,8 @@ import math
 import array
 import numpy as np
 from inverted_index import InvertedIndex
+from nltk.stem.porter import PorterStemmer
+
 
 class SearchEngine:
     """ SearchEngine is a class dealing with real-time querying
@@ -260,6 +262,7 @@ class SearchEngine:
         op_stack = []
         output_stack = []
         precedence = SearchEngine.precedence
+        porter_stemmer = PorterStemmer()
 
         terms = set()
         tokens = self._tokenize_expr(expr)
@@ -283,7 +286,9 @@ class SearchEngine:
                 op_stack.append(token)
 
             else:
-                token = token.lower()
+                token = porter_stemmer.stem(token).lower()
+                #token = token.lower()
+
                 output_stack.append(token)
                 terms.add(token)
 
@@ -322,7 +327,3 @@ if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('dean OR kenneth OR douglas'))
-#18 748 1153 1792 2922 3149 4005 4290 5888 10080 10553 10564 10565 11083 11746 12050 12337 13053
-
-#dean OR kenneth OR douglas
-#18 153 256 748 868 1153 1421 1724 1792 2491 2512 2922 3149 3222 3931 4005 4049 4081 4290 5190 5338 5827 5888 6083 7111 10080 10445 10553 10555 10564 10565 11007 11083 11746 12050 12195 12281 12337 13053 13092 13114
