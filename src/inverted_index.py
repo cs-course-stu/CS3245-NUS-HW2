@@ -56,8 +56,8 @@ class InvertedIndex:
                         #     continue
                         # stemmer.lower
                         clean_token = porter_stemmer.stem(token).lower()
-                        if not clean_token.isalnum():
-                            continue
+                        # if not clean_token.isalnum():
+                        #     continue
                         if clean_token in self.dictionary:
                             self.postings[clean_token][0].add(doc_id)
                         else:
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     print("test the example: her")
     #print(inverted_index.postings['her'])
     total_doc, dictionary = inverted_index.LoadDict()
-    postings = inverted_index.LoadPostings('I')
+    postings = inverted_index.LoadPostings(',')
     print(postings)
 
     postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
