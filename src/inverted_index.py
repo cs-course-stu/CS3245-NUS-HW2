@@ -193,10 +193,11 @@ if __name__ == '__main__':
     print("test the example: her")
     #print(inverted_index.postings['her'])
     total_doc, dictionary = inverted_index.LoadDict()
-    postings = inverted_index.LoadPostings(',')
+    postings = inverted_index.LoadPostings('relief')
     print(postings)
+    #1, 11459, 11911, 13462
 
-    postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
-    for term, postings in postings_lists.items():
-        print(term, ": ", postings)
+    # postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
+    # for term, postings in postings_lists.items():
+    #     print(term, ": ", postings)
 
