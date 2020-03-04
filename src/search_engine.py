@@ -4,10 +4,17 @@ import sys
 import math
 import array
 import numpy as np
+from enum import Enum
 from inverted_index import InvertedIndex
 from nltk.stem.porter import PorterStemmer
 
-
+class OpType(Enum):
+    NOT = 0
+    AND = 1
+    OR = 2
+    AND_NOT = 3
+    OR_NOT = 4
+    
 class SearchEngine:
     """ SearchEngine is a class dealing with real-time querying
 
@@ -36,6 +43,7 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
+
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
         postings_lists = self.index.LoadTerms(terms)
@@ -47,16 +55,16 @@ class SearchEngine:
 
         tokens.append('')
         for token in tokens:
-            if token == "NOT":
-                if type(exec_stack[-1]) == str:
+            if token == OpType.NOT:
+                if type(exec_stack[-1]) == OpType:
                     group_no += 1
                     self._exec_group(group_no, exec_stack, postings_lists)
                 exec_stack[-1][1] = not exec_stack[-1][1]
                 last_type = False
                 continue
 
-            cur_type = token == 'AND' or token == 'OR'
-            same = token == exec_stack[-1] == token if exec_stack else False
+            cur_type = token == OpType.AND or token == OpType.OR
+            same = token == exec_stack[-1] if exec_stack else False
             
             if last_type and not same:
                 group_no += 1
@@ -88,7 +96,7 @@ class SearchEngine:
         op = exec_stack[-1]
         while exec_stack and term_num:
             last = exec_stack[-1]
-            if type(last) == str:
+            if type(last) == OpType:
                 term_num += 1
             else:
                 term_num -= 1
@@ -104,7 +112,7 @@ class SearchEngine:
             
         # change the execution order
         # print("before: ", terms)
-        self._optimize_merge(terms, postings_lists)
+        self._optimize_merge(op, terms, postings_lists)
         # print("after: ", terms)
 
         # merge the posting lists
@@ -117,22 +125,43 @@ class SearchEngine:
     """ optimize the merging process based on merging cost
 
     Agrs:
+        op: the type of merging operation
         terms: the terms need to be merged
         postings_lists: the dictionary with terms to posting lists mapping
 
     Returns:
         terms: the list in optimized merging order
     """
-    def _optimize_merge(self, terms, postings_lists):
+    def _optimize_merge(self, op, terms, postings_lists):
         total_size = self.total_postings.size
 
+        flag = False
+        min_pos = 0
+        total_max_pos = 0
+        total_min_pos = 0
+        min_cost = total_size + 1
         for i, term in enumerate(terms):
-            term[2] = len(postings_lists[term[0]][0])
-            if term[1]:
-                term[2] = total_size - term[2]
+            term[2] = postings_lists[term[0]][0].size
+            if op == OpType.OR:
+                if term[1]:
+                    term[2] = total_size - term[2]
+            else:
+                if term[2] < terms[total_min_pos][2]:
+                    total_min_pos = i
+                if term[2] > terms[total_max_pos][2]:
+                    total_max_pos = i
+                if not term[1] and term[2] < terms[min_pos][2]:
+                    min_pos = i
+                    flag = True
+
+        print(flag, total_min_pos, total_max_pos, min_pos)
+        if op == OpType.AND:
+            if terms[total_min_pos][1]:
+                if not flag:
+                    min_pos = total_max_pos
+                terms[min_pos][2] = -1
 
         terms.sort(key=lambda key: key[2])
-
         return terms
 
     """ merge the terms based on the order of the terms in the list
@@ -149,18 +178,26 @@ class SearchEngine:
         result_set = self._get_postings(terms[0], postings_lists)
 
         for i in range(1, len(terms)):
+            # optimize merging when list is empty
             if result_set[0].size == 0:
-                if op == 'AND':
+                if op == OpType.AND:
                     return result_set
-                elif op == 'OR':
+                elif op == OpType.OR:
                     result_set = self._get_postings(terms[i], postings_lists)
                     continue
 
+            # optimize and not operation
+            exec_op = op
+            if op == OpType.AND and terms[i][1]:
+                terms[i][1] = False
+                exec_op = OpType.AND_NOT
+
+            # get right set
             right_set = self._get_postings(terms[i], postings_lists)
 
             # print("left_set: ", result_set)
             # print("right_set: ", right_set)
-            result_set = self._merge_postings(result_set, op, right_set)
+            result_set = self._merge_postings(result_set, exec_op, right_set)
             # print("result_set: ", result_set)
 
         return result_set
@@ -180,7 +217,7 @@ class SearchEngine:
         len1, len2 = postings1.size, postings2.size
         sk_len1, sk_len2 = pointers1.size, pointers2.size
         result = array.array('i')
-        if op == 'AND':
+        if op == OpType.AND:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
                 if doc1 == doc2:
@@ -198,7 +235,32 @@ class SearchEngine:
                             p2, skip2 = pointers2[skip2 + 1], skip2 + 1
                             continue
                     p2 += 1
-        elif op == 'OR':
+        elif op == OpType.AND_NOT:
+            while p1 < len1 and p2 < len2:
+                doc1, doc2 = postings1[p1], postings2[p2]
+                if doc1 < doc2:
+                    result.append(doc1)
+                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
+                        if postings1[pointers1[skip1 + 1]] <= doc2:
+                            skip1 += 1
+                            for p in range(p1+1, pointers1[skip1]):
+                                result.append(postings1[p])
+                            p1 = pointers1[skip1]
+                            continue
+                    p1 += 1
+                elif doc1 == doc2:
+                    p1, p2 = p1 + 1, p2 + 2
+                else:
+                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
+                        if postings2[pointers2[skip2 + 1]] <= doc1:
+                            p2, skip2 = pointers2[skip2 + 1], skip2 + 1
+                            continue
+                    p2 += 1
+            while p1 < len1:
+                result.append(postings1[p1])
+                p1 += 1
+
+        elif op == OpType.OR:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
                 if doc1 == doc2:
@@ -284,25 +346,26 @@ class SearchEngine:
                 assert parenthese > 0, "wrong query expression, parentheses are not matched"
 
                 while op_stack[-1] != '(':
-                    output_stack.append(op_stack.pop())
+                    op = OpType[op_stack.pop()]
+                    output_stack.append(op)
 
                 parenthese -= 1
                 op_stack.pop()
             elif token in precedence:
                 while len(op_stack) and precedence[token] > precedence[op_stack[-1]]:
-                    output_stack.append(op_stack.pop())
+                    op = OpType[op_stack.pop()]
+                    output_stack.append(op)
 
                 op_stack.append(token)
 
             else:
                 token = porter_stemmer.stem(token).lower()
-                #token = token.lower()
-
                 output_stack.append(token)
                 terms.add(token)
 
         while len(op_stack):
-            output_stack.append(op_stack.pop())
+            op = OpType[op_stack.pop()]
+            output_stack.append(op)
 
         return list(terms), output_stack
 
@@ -336,3 +399,17 @@ if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('grower AND NOT relief'))
+    terms = [['a', True, 0],
+             ['b', True,  0],
+             ['c', True,  0],
+             ['d', True,  0],
+             ['e', True,  0]]
+    postings_lists = {
+        'a': (np.array([1,2,3], dtype=np.int32), 0),
+        'b': (np.array([1,2,3,4], dtype=np.int32), 0),
+        'c': (np.array([1,2,3], dtype=np.int32), 0),
+        'd': (np.array([1,2], dtype=np.int32), 0),
+        'e': (np.array([1], dtype=np.int32), 0),
+    }
+
+    print(search_engine._optimize_merge(OpType.AND, terms, postings_lists))
