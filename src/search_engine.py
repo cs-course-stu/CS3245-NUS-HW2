@@ -199,22 +199,22 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    # if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
-                    #     skip1 += 1
-                    #     for p in range(p1+1, pointers1[skip1]):
-                    #         result.append(postings1[p])
-                    #     p1 = pointers1[skip1]
-                    # else:
-                    p1 += 1
+                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
+                        skip1 += 1
+                        for p in range(p1+1, pointers1[skip1]):
+                            result.append(postings1[p])
+                        p1 = pointers1[skip1]
+                    else:
+                        p1 += 1
                 else:
                     result.append(doc2)
-                    # if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
-                    #     skip2 += 1
-                    #     for p in range(p2+1, pointers2[skip2]):
-                    #         result.append(postings2[p])
-                    #     p2 = pointers2[skip2]
-                    # else:
-                    p2 += 1
+                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
+                        skip2 += 1
+                        for p in range(p2+1, pointers2[skip2]):
+                            result.append(postings2[p])
+                        p2 = pointers2[skip2]
+                    else:
+                        p2 += 1
             while p1 < len1:
                 result.append(postings1[p1])
                 p1 += 1
@@ -326,8 +326,8 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    print(search_engine.search('grower AND NOT relief'))
-###### 8903 ########
+    print(search_engine.search('dean OR kenneth OR douglas'))
+###### 8903 ######## grower AND NOT relief
 # wrong: [  516   742  1030  1361  1582  1674  2195  2367  2390  2617  2727  2741
 #   2749  2913  2922  2954  3847  3855  3981  4490  4603  5002  5134  5214
 #   5471  5702  5800  5873  6269  6326  6657  6744  6882  6890  7104  7124
@@ -335,3 +335,8 @@ if __name__ == '__main__':
 #  10100 10537 11330 11843 12160 12372 12424 13080]
 
 # correct: 516 742 1030 1361 1582 1674 2195 2367 2390 2617 2727 2741 2749 2913 2922 2954 3847 3855 3981 4490 4603 5002 5134 5214 5471 5702 5800 5873 6269 6326 6657 6744 6882 6890 7104 7124 7326 7356 7471 7545 8004 8179 8638 9069 9203 9470 9521 10100 10537 11330 11843 12160 12372 12424 13080
+
+
+####### 1421 2922 3222 3931 5888 6083 11007 12337 ############# dean OR kenneth OR douglas
+#wrong: 18 153 256 748 868 1153 1421 1421 1724 1792 2491 2512 2922 2922 3149 3222 3222 3931 3931 4005 4049 4081 4290 5190 5338 5827 5888 5888 6083 6083 7111 10080 10445 10553 10555 10564 10565 11007 11007 11083 11746 12050 12195 12281 12337 12337 13053 13092 13114
+#correct: 18 153 256 748 868 1153 1421 1724 1792 2491 2512 2922 3149 3222 3931 4005 4049 4081 4290 5190 5338 5827 5888 6083 7111 10080 10445 10553 10555 10564 10565 11007 11083 11746 12050 12195 12281 12337 13053 13092 13114
