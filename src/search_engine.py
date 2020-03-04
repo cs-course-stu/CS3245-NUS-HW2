@@ -197,22 +197,22 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
-                        skip1 += 1
-                        for p in range(p1+1, pointers1[skip1]):
-                            result.append(postings1[p])
-                        p1 = pointers1[skip1]
-                    else:
-                        p1 += 1
+                    # if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
+                    #     skip1 += 1
+                    #     for p in range(p1+1, pointers1[skip1]):
+                    #         result.append(postings1[p])
+                    #     p1 = pointers1[skip1]
+                    # else:
+                    p1 += 1
                 else:
                     result.append(doc2)
-                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
-                        skip2 += 1
-                        for p in range(p2+1, pointers2[skip2]):
-                            result.append(postings2[p])
-                        p2 = pointers2[skip2]
-                    else:
-                        p2 += 1
+                    # if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
+                    #     skip2 += 1
+                    #     for p in range(p2+1, pointers2[skip2]):
+                    #         result.append(postings2[p])
+                    #     p2 = pointers2[skip2]
+                    # else:
+                    p2 += 1
             while p1 < len1:
                 result.append(postings1[p1])
                 p1 += 1
@@ -321,5 +321,8 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    print(search_engine.search('(dean OR kenneth OR douglas) AND dean'))
+    print(search_engine.search('dean OR kenneth OR douglas'))
 #18 748 1153 1792 2922 3149 4005 4290 5888 10080 10553 10564 10565 11083 11746 12050 12337 13053
+
+#dean OR kenneth OR douglas
+#18 153 256 748 868 1153 1421 1724 1792 2491 2512 2922 3149 3222 3931 4005 4049 4081 4290 5190 5338 5827 5888 6083 7111 10080 10445 10553 10555 10564 10565 11007 11083 11746 12050 12195 12281 12337 13053 13092 13114
