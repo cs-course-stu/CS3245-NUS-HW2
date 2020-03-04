@@ -150,6 +150,13 @@ class SearchEngine:
         result_set = self._get_postings(terms[0], postings_lists)
 
         for i in range(1, len(terms)):
+            if result_set[0].size == 0:
+                if op == 'AND':
+                    return result_set
+                elif op == 'OR':
+                    result_set = self._get_postings(terms[i], postings_lists)
+                    continue
+
             right_set = self._get_postings(terms[i], postings_lists)
 
             # print("left_set: ", result_set)
