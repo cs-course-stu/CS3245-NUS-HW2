@@ -92,10 +92,10 @@ class SearchEngine:
                 term_num += 1
             else:
                 term_num -= 1
-                #if last[1]:
+                # if last[1]:
                     # print('~', end='')
                 # print("'%s'"%last[0], end='')
-                #if term_num:
+                # if term_num:
                     # print(' %s '%op, end='')
                 terms.append(last)
                 
@@ -180,13 +180,13 @@ class SearchEngine:
                     result.append(doc1)
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
-                    if skip1 < sk_len1-1 and postings1[pointers1[skip1]] <= doc2:
-                        p1, skip1 = pointers1[skip1], skip1 + 1
+                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
+                        p1, skip1 = pointers1[skip1 + 1], skip1 + 1
                     else:
                         p1 += 1
                 else:
-                    if skip2 < sk_len2-1 and postings2[pointers2[skip2]] <= doc1:
-                        p2, skip2 = pointers2[skip2], skip2 + 1
+                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
+                        p2, skip2 = pointers2[skip2 + 1], skip2 + 1
                     else:
                         p2 += 1
         elif op == 'OR':
@@ -197,17 +197,20 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    if skip1 < sk_len1-1 and postings1[pointers1[skip1]] <= doc2:
+                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
+                        skip1 += 1
                         for p in range(p1+1, pointers1[skip1]):
                             result.append(postings1[p])
-                        p1, skip1 = pointers1[skip1], skip1 + 1
+                        p1 = pointers1[skip1]
                     else:
                         p1 += 1
                 else:
-                    if skip2 < sk_len2-1 and postings2[pointers2[skip2]] <= doc1:
+                    result.append(doc2)
+                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
+                        skip2 += 1
                         for p in range(p2+1, pointers2[skip2]):
                             result.append(postings2[p])
-                        p2, skip2 = pointers2[skip2], skip2 + 1
+                        p2 = pointers2[skip2]
                     else:
                         p2 += 1
             while p1 < len1:
