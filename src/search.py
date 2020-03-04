@@ -29,7 +29,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             result = map(str, result)
             #print(type(result))
             str1 = ' '.join(result) + '\n'
-            print(str1)
+            #print(str1)
             file_result.write(str1)
         #print(i)
     return

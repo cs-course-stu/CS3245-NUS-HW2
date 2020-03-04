@@ -20,9 +20,9 @@ class SearchEngine:
     def __init__(self, dictionary_file, postings_file):
         self.dictionary_file = dictionary_file
         self.postings_file = postings_file
-
         self.index = InvertedIndex(dictionary_file, postings_file)
         self.doc_set, self.dictionary = self.index.LoadDict()
+        self.skip_pointers = self.index.LoadSkippointers()
         self.total_postings = np.array(list(self.doc_set), dtype = np.int32)
 
     """ search and return docIds according to the boolean expression
@@ -36,7 +36,6 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
-
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
         postings_lists = self.index.LoadTerms(terms)
@@ -336,14 +335,4 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    print(search_engine.search('dean OR kenneth OR douglas'))
     print(search_engine.search('grower AND NOT relief'))
-###### 8903 ######## grower AND NOT relief
-# wrong: [ 516 742 1030 1361 1582 1674 2195 2367 2390 2617 2727 2741 2749 2913 2922 2954 3847 3855 3981 4490 4603 5002 5134 5214 5471 5702 5800 5873 6269 6326 6657 6744 6882 6890 7104 7124 7326 7356 7471 7545 8004 8179 8638 8903 9069 9203 9470 9521 10100 10537 11330 11843 12160 12372 12424 13080]
-
-# correct: 516 742 1030 1361 1582 1674 2195 2367 2390 2617 2727 2741 2749 2913 2922 2954 3847 3855 3981 4490 4603 5002 5134 5214 5471 5702 5800 5873 6269 6326 6657 6744 6882 6890 7104 7124 7326 7356 7471 7545 8004 8179 8638 9069 9203 9470 9521 10100 10537 11330 11843 12160 12372 12424 13080
-
-
-####### 1421 2922 3222 3931 5888 6083 11007 12337 ############# dean OR kenneth OR douglas
-#wrong: 18 153 256 748 868 1153 1421 1421 1724 1792 2491 2512 2922 2922 3149 3222 3222 3931 3931 4005 4049 4081 4290 5190 5338 5827 5888 5888 6083 6083 7111 10080 10445 10553 10555 10564 10565 11007 11007 11083 11746 12050 12195 12281 12337 12337 13053 13092 13114
-#correct: 18 153 256 748 868 1153 1421 1724 1792 2491 2512 2922 3149 3222 3931 4005 4049 4081 4290 5190 5338 5827 5888 6083 7111 10080 10445 10553 10555 10564 10565 11007 11083 11746 12050 12195 12281 12337 13053 13092 13114

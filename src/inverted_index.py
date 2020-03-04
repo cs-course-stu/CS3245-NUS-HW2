@@ -22,6 +22,7 @@ class InvertedIndex:
         self.postings_file = postings_file
         self.total_doc = set()
         self.dictionary = {}
+        self.skip_pointer_list = []
         self.postings = {}
         self.file_handle = None
 
@@ -63,14 +64,17 @@ class InvertedIndex:
                         else:
                             self.dictionary[clean_token] = 0
                             self.postings[clean_token] = [{doc_id}]
+
         # add skip pointer
-        for key, value in self.postings.items():
-            length = len(self.postings[key][0])
-            pointers = self.CreateSkipPointers(length)
-            self.postings[key].append(pointers)
+        max_len = len(self.total_doc)
+        # for key, value in self.postings.items():
+        #     length = len(self.postings[key][0])
+        #     pointers = self.CreateSkipPointers(length)
+        #     self.postings[key].append(pointers)
 
         print('build index successfully!')
-
+        for i in range(max_len+1):
+            self.skip_pointer_list.append(self.CreateSkipPointers(i))
     """ save dictionary and postings given fom build_index() to file
     """
 
@@ -80,6 +84,7 @@ class InvertedIndex:
         dict_file = open(self.dictionary_file, 'wb+')
         post_file = open(self.postings_file, 'wb+')
         pos = 0
+        pickle.dump(self.skip_pointer_list, post_file)
         for key, value in self.postings.items():
             # save the offset of dictionary
             pos = post_file.tell()
@@ -91,13 +96,25 @@ class InvertedIndex:
 
             # save postings and skip pointers
             np.save(post_file, tmp, allow_pickle=True)
-            np.save(post_file, self.postings[key][1], allow_pickle=True)
+            #np.save(post_file, self.postings[key][1], allow_pickle=True)
 
         # save total_doc and dictionary
         pickle.dump(self.total_doc, dict_file)
         pickle.dump(self.dictionary, dict_file)
         print('save to file successfully!')
         return
+
+    """ load skip pointers from file
+
+    Returns:
+        skip_pointer_list: list of all skip pointers
+    """
+
+    def LoadSkippointers(self):
+        if not self.file_handle:
+            self.file_handle = open(self.postings_file, 'rb')
+        self.skip_pointer_list = pickle.load(self.file_handle)
+        return self.skip_pointer_list
 
     """ load dictionary from file
 
@@ -129,11 +146,11 @@ class InvertedIndex:
     def LoadPostings(self, term):
         if not self.file_handle:
             self.file_handle = open(self.postings_file, 'rb')
-
         print('loading postings...')
         self.file_handle.seek(self.dictionary[term])
         postings = np.load(self.file_handle, allow_pickle=True)
-        pointers = np.load(self.file_handle, allow_pickle=True)
+        pointers = self.skip_pointer_list[len(postings)]
+        #pointers = np.load(self.file_handle, allow_pickle=True)
         print('load postings successfully!')
         return (postings, pointers)
 
@@ -175,7 +192,8 @@ class InvertedIndex:
             if term in self.dictionary:
                 self.file_handle.seek(self.dictionary[term])
                 postings = np.load(self.file_handle, allow_pickle=True)
-                pointers = np.load(self.file_handle, allow_pickle=True)
+                pointers = self.skip_pointer_list[len(postings)]
+                #pointers = np.load(self.file_handle, allow_pickle=True)
             else:
                 postings = np.zeros((0, ))
                 pointers = np.zeros((0, ))
@@ -187,14 +205,24 @@ if __name__ == '__main__':
     # test the example: that
     inverted_index = InvertedIndex('dictionary.txt', 'postings.txt')
     #inverted_index.build_index('../../reuters/training')
+    # start = time.time()
     # inverted_index.build_index(
     #    '/Users/wangyifan/Google Drive/reuters/training')
     # inverted_index.SavetoFile()
     print("test the example: her")
-    #print(inverted_index.postings['her'])
+    #print(inverted_index.postings['that'])
     total_doc, dictionary = inverted_index.LoadDict()
-    postings = inverted_index.LoadPostings('relief')
+    skip_pointers = inverted_index.LoadSkippointers()
+
+    (postings, pointers) = inverted_index.LoadPostings('that')
+    term = ['grower', 'relief']
+    print(inverted_index.LoadTerms(term))
     print(postings)
+
+    # end = time.time()
+    # print('execution time: ' + str(end-start) + 's')
+    #print(inverted_index.CreateSkipPointers(len(postings)))
+    #print(postings)
     #1, 11459, 11911, 13462
 
     # postings_lists = inverted_index.LoadTerms(['bill', 'Gates', 'vista', 'XP', 'mac'])
