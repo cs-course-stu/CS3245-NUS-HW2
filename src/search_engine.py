@@ -36,8 +36,7 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
-        print(terms)
-        print(tokens)
+
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
         postings_lists = self.index.LoadTerms(terms)
@@ -95,10 +94,10 @@ class SearchEngine:
             else:
                 term_num -= 1
                 # if last[1]:
-                    # print('~', end='')
+                #     print('~', end='')
                 # print("'%s'"%last[0], end='')
                 # if term_num:
-                    # print(' %s '%op, end='')
+                #     print(' %s '%op, end='')
                 terms.append(last)
                 
             exec_stack.pop()
@@ -148,11 +147,11 @@ class SearchEngine:
         result: return the merged list of the terms
     """
     def _merge_group(self, op, terms, postings_lists):
-        total_docIds = self.total_postings
-
         result_set = self._get_postings(terms[0], postings_lists)
+
         for i in range(1, len(terms)):
             right_set = self._get_postings(terms[i], postings_lists)
+
             # print("left_set: ", result_set)
             # print("right_set: ", right_set)
             result_set = self._merge_postings(result_set, op, right_set)
@@ -182,15 +181,17 @@ class SearchEngine:
                     result.append(doc1)
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
-                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
-                        p1, skip1 = pointers1[skip1 + 1], skip1 + 1
-                    else:
-                        p1 += 1
+                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
+                        if postings1[pointers1[skip1 + 1]] <= doc2:
+                            p1, skip1 = pointers1[skip1 + 1], skip1 + 1
+                            continue
+                    p1 += 1
                 else:
-                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
-                        p2, skip2 = pointers2[skip2 + 1], skip2 + 1
-                    else:
-                        p2 += 1
+                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
+                        if postings2[pointers2[skip2 + 1]] <= doc1:
+                            p2, skip2 = pointers2[skip2 + 1], skip2 + 1
+                            continue
+                    p2 += 1
         elif op == 'OR':
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
@@ -199,22 +200,24 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    if skip1 < sk_len1-1 and postings1[pointers1[skip1 + 1]] <= doc2:
-                        skip1 += 1
-                        for p in range(p1+1, pointers1[skip1]):
-                            result.append(postings1[p])
-                        p1 = pointers1[skip1]
-                    else:
-                        p1 += 1
+                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
+                        if postings1[pointers1[skip1 + 1]] <= doc2:
+                            skip1 += 1
+                            for p in range(p1+1, pointers1[skip1]):
+                                result.append(postings1[p])
+                            p1 = pointers1[skip1]
+                            continue
+                    p1 += 1
                 else:
                     result.append(doc2)
-                    if skip2 < sk_len2-1 and postings2[pointers2[skip2 + 1]] <= doc1:
-                        skip2 += 1
-                        for p in range(p2+1, pointers2[skip2]):
-                            result.append(postings2[p])
-                        p2 = pointers2[skip2]
-                    else:
-                        p2 += 1
+                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
+                        if postings2[pointers2[skip2 + 1]] <= doc1:
+                            skip2 += 1
+                            for p in range(p2+1, pointers2[skip2]):
+                                result.append(postings2[p])
+                            p2 = pointers2[skip2]
+                            continue;
+                    p2 += 1
             while p1 < len1:
                 result.append(postings1[p1])
                 p1 += 1
@@ -327,12 +330,9 @@ if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
     print(search_engine.search('dean OR kenneth OR douglas'))
+    print(search_engine.search('grower AND NOT relief'))
 ###### 8903 ######## grower AND NOT relief
-# wrong: [  516   742  1030  1361  1582  1674  2195  2367  2390  2617  2727  2741
-#   2749  2913  2922  2954  3847  3855  3981  4490  4603  5002  5134  5214
-#   5471  5702  5800  5873  6269  6326  6657  6744  6882  6890  7104  7124
-#   7326  7356  7471  7545  8004  8179  8638  8903  9069  9203  9470  9521
-#  10100 10537 11330 11843 12160 12372 12424 13080]
+# wrong: [ 516 742 1030 1361 1582 1674 2195 2367 2390 2617 2727 2741 2749 2913 2922 2954 3847 3855 3981 4490 4603 5002 5134 5214 5471 5702 5800 5873 6269 6326 6657 6744 6882 6890 7104 7124 7326 7356 7471 7545 8004 8179 8638 8903 9069 9203 9470 9521 10100 10537 11330 11843 12160 12372 12424 13080]
 
 # correct: 516 742 1030 1361 1582 1674 2195 2367 2390 2617 2727 2741 2749 2913 2922 2954 3847 3855 3981 4490 4603 5002 5134 5214 5471 5702 5800 5873 6269 6326 6657 6744 6882 6890 7104 7124 7326 7356 7471 7545 8004 8179 8638 9069 9203 9470 9521 10100 10537 11330 11843 12160 12372 12424 13080
 
