@@ -174,6 +174,19 @@ class InvertedIndex:
             pointers[i] = pointers[i - 1] + strip
         return pointers
 
+    """ get skip pointers based on length
+
+    Args: 
+        length: length of postings
+
+    Returns:
+        pointers: array of skip pointers
+    """
+
+    def GetSkipPointers(self, length):
+        assert 0 <= length <= len(self.total_doc), "length should be legal"
+        return self.skip_pointer_list[length]
+
     """ load multiple postings lists from file
 
     Args:
@@ -193,10 +206,8 @@ class InvertedIndex:
                 self.file_handle.seek(self.dictionary[term])
                 postings = np.load(self.file_handle, allow_pickle=True)
                 pointers = self.skip_pointer_list[len(postings)]
-                #pointers = np.load(self.file_handle, allow_pickle=True)
             else:
-                postings = np.zeros((0, ))
-                pointers = np.zeros((0, ))
+                postings = pointers = self.skip_pointer_list[0]
             ret[term] = (postings, pointers)
 
         return ret

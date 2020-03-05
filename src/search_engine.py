@@ -238,7 +238,7 @@ class SearchEngine:
             while p < length:
                 result.append(postings[p])
                 p += 1
-        
+
         if op == OpType.AND:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
@@ -276,7 +276,7 @@ class SearchEngine:
             f3(p2, len2, postings2)
 
         result = np.frombuffer(result, dtype=np.int32)
-        return (result, self.index.CreateSkipPointers(result.size))
+        return (result, self.index.GetSkipPointers(result.size))
 
     """ get the postings list of the term
 
@@ -297,7 +297,7 @@ class SearchEngine:
         else:
             postings = postings_lists[term[0]][0]
             postings = np.setdiff1d(self.total_postings, postings)
-            postings = (postings, self.index.CreateSkipPointers(postings.size))
+            postings = (postings, self.index.GetSkipPointers(postings.size))
             postings_lists[not_term] = postings
             return postings
 
