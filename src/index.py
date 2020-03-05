@@ -14,7 +14,6 @@ def build_index(in_dir, out_dict, out_postings):
     build index from documents stored in the input directory,
     then output the dictionary file and postings file
     """
-    # print('indexing...')
     # initialize the class
     inverted_index = InvertedIndex(out_dict, out_postings)
     inverted_index.build_index(in_dir)
@@ -31,11 +30,11 @@ except getopt.GetoptError:
     sys.exit(2)
 
 for o, a in opts:
-    if o == '-i': # input directory
+    if o == '-i':
         input_directory = a
-    elif o == '-d': # dictionary file
+    elif o == '-d':
         output_file_dictionary = a
-    elif o == '-p': # postings file
+    elif o == '-p':
         output_file_postings = a
     else:
         assert False, "unhandled option"
