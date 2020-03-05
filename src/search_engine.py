@@ -43,6 +43,7 @@ class SearchEngine:
     def search(self, expr):
         # get the tokens from the expr
         terms, tokens = self._parse_expr(expr)
+        terms.append('  ')
 
         # get the posting lists from the InvertedIndex class
         # postings = self.index.LoadTerms(terms)
@@ -53,7 +54,7 @@ class SearchEngine:
         last_type = False
         exec_stack = []
 
-        tokens.append('')
+        tokens.append('  ')
         for token in tokens:
             if token == OpType.NOT:
                 if type(exec_stack[-1]) == OpType:
@@ -154,7 +155,6 @@ class SearchEngine:
                     min_pos = i
                     flag = True
 
-        print(flag, total_min_pos, total_max_pos, min_pos)
         if op == OpType.AND:
             if terms[total_min_pos][1]:
                 if not flag:
@@ -217,6 +217,28 @@ class SearchEngine:
         len1, len2 = postings1.size, postings2.size
         sk_len1, sk_len2 = pointers1.size, pointers2.size
         result = array.array('i')
+
+        def f1(doc, p, skip, sk_len, postings, pointers):
+            if skip < sk_len - 1 and p == pointers[skip]:
+                skip += 1
+                if postings[pointers[skip]] <= doc:
+                    return pointers[skip], skip
+            return p + 1, skip
+
+        def f2(doc, p, skip, sk_len, postings, pointers):
+            if skip < sk_len - 1 and p == pointers[skip]:
+                skip += 1
+                if postings[pointers[skip]] <= doc:
+                    for i in range(p+1, pointers[skip]):
+                        result.append(postings[i])
+                    return pointers[skip], skip
+            return p + 1, skip
+
+        def f3(p, length, postings):
+            while p < length:
+                result.append(postings[p])
+                p += 1
+        
         if op == OpType.AND:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
@@ -224,42 +246,20 @@ class SearchEngine:
                     result.append(doc1)
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
-                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
-                        if postings1[pointers1[skip1 + 1]] <= doc2:
-                            p1, skip1 = pointers1[skip1 + 1], skip1 + 1
-                            continue
-                    p1 += 1
+                    p1, skip1 = f1(doc2, p1, skip1, sk_len1, postings1, pointers1)
                 else:
-                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
-                        if postings2[pointers2[skip2 + 1]] <= doc1:
-                            p2, skip2 = pointers2[skip2 + 1], skip2 + 1
-                            continue
-                    p2 += 1
+                    p2, skip2 = f1(doc1, p2, skip2, sk_len2, postings2, pointers2)
         elif op == OpType.AND_NOT:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
                 if doc1 < doc2:
                     result.append(doc1)
-                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
-                        if postings1[pointers1[skip1 + 1]] <= doc2:
-                            skip1 += 1
-                            for p in range(p1+1, pointers1[skip1]):
-                                result.append(postings1[p])
-                            p1 = pointers1[skip1]
-                            continue
-                    p1 += 1
+                    p1, skip1 = f2(doc2, p1, skip1, sk_len1, postings1, pointers1)
                 elif doc1 == doc2:
-                    p1, p2 = p1 + 1, p2 + 2
+                    p1, p2 = p1 + 1, p2 + 1
                 else:
-                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
-                        if postings2[pointers2[skip2 + 1]] <= doc1:
-                            p2, skip2 = pointers2[skip2 + 1], skip2 + 1
-                            continue
-                    p2 += 1
-            while p1 < len1:
-                result.append(postings1[p1])
-                p1 += 1
-
+                    p2, skip2 = f1(doc1, p2, skip2, sk_len2, postings2, pointers2)
+            f3(p1, len1, postings1)
         elif op == OpType.OR:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
@@ -268,30 +268,12 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    if skip1 < sk_len1 - 1 and p1 == pointers1[skip1]:
-                        if postings1[pointers1[skip1 + 1]] <= doc2:
-                            skip1 += 1
-                            for p in range(p1+1, pointers1[skip1]):
-                                result.append(postings1[p])
-                            p1 = pointers1[skip1]
-                            continue
-                    p1 += 1
+                    p1, skip1 = f2(doc2, p1, skip1, sk_len1, postings1, pointers1)
                 else:
                     result.append(doc2)
-                    if skip2 < sk_len2 - 1 and p2 == pointers2[skip2]:
-                        if postings2[pointers2[skip2 + 1]] <= doc1:
-                            skip2 += 1
-                            for p in range(p2+1, pointers2[skip2]):
-                                result.append(postings2[p])
-                            p2 = pointers2[skip2]
-                            continue;
-                    p2 += 1
-            while p1 < len1:
-                result.append(postings1[p1])
-                p1 += 1
-            while p2 < len2:
-                result.append(postings2[p2])
-                p2 += 1
+                    p2, skip2 = f2(doc1, p2, skip2, sk_len2, postings2, pointers2)
+            f3(p1, len1, postings1)
+            f3(p2, len2, postings2)
 
         result = np.frombuffer(result, dtype=np.int32)
         return (result, self.index.CreateSkipPointers(result.size))
@@ -398,7 +380,9 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    print(search_engine.search('grower AND NOT relief'))
+    # print(search_engine.search('NOT BAHIA AND COCOA'))
+    # print(search_engine.search('grower AND NOT relief'))
+    print(search_engine.search('NOT hamtaro'))
     terms = [['a', True, 0],
              ['b', True,  0],
              ['c', True,  0],
