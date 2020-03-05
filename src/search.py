@@ -14,7 +14,6 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     perform searching on the given queries file and output the results to a file
     """
     print('running search on the queries...')
-    # load the dictionary
 
     # initialize the class
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
@@ -25,12 +24,15 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         lines = file.readlines()
         for line in lines:            
             i = i + 1
+            # get result and convert it to string
             result = search_engine.search(line)
             result = map(str, result)
             if i == len(lines):
                 str1 = ' '.join(result)
             else:
                 str1 = ' '.join(result) + '\n'
+
+            # save the result to file
             file_result.write(str1)
 
     return
