@@ -102,6 +102,7 @@ We suggest that we should be graded as follows:
   * Avoid frequent copying data by processing empty lists separately.
   * Optimize AND NOT operation separately.
   * Avoid loading same term multiple times to save time and space
+  * Set total skip pointer list instead each word to speed up indexing and searching
 
 == References ==
 
