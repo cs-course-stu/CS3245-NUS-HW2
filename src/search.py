@@ -22,13 +22,17 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     file_result = open(results_file, 'w')
     with open(queries_file, 'r') as file:
         i =0
-        for line in file:
+        lines = file.readlines()
+        for line in lines:            
             i=i+1
             result = search_engine.search(line)
             #np.save(file_result, result, allow_pickle=False)
             result = map(str, result)
             #print(type(result))
-            str1 = ' '.join(result) + '\n'
+            if line is not lines[-1]:
+                str1 = ' '.join(result) + '\n'
+            else:
+                str1 = ' '.join(result)
             #print(str1)
             file_result.write(str1)
         #print(i)
