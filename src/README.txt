@@ -1,8 +1,8 @@
-This is the README file for A0000000X's submission
+This is the README file for A0213835H-A0214251W's  submission
 
 == Python Version ==
 
-We're using Python Version 3.7.4 for this assignment.
+We're using Python Version 3.7.4 and 3.7.6 for this assignment.
 
 == General Notes about this assignment ==
 
@@ -76,12 +76,13 @@ and formatted correctly.
 * index.py: The file in this assignment using InvertedIndex to build the index and dump to file.
 * search.py: The file in this assignment using SearchEngine to get the result of the boolean expression query.
 * README.txt: This file contains this sentence which gives an overview of this assignment.
+* ESSAY.txt: This file contains essay questions mentioned on HW#2
 
 == Statement of individual work ==
 
 Please put a "x" (without the double quotes) into the bracket of the appropriate statement.
 
-[x] I/We, A0214251W, certify that I/we have followed the CS 3245 Information
+[x] I/We, A0214251W-A0213835H, certify that I/we have followed the CS 3245 Information
 Retrieval class guidelines for homework assignments.  In particular, I/we
 expressly vow that I/we have followed the Facebook rule in discussing
 with others in doing the assignment and did not take notes (digital or
