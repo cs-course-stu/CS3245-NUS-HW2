@@ -40,7 +40,7 @@ Load Postings:
 [Search]
 As for the search part, we use the following steps to process a request.
    1. Parse the query string based on the Shunting-yard algorithm,
-      we will get a list of operations and operands which known as Reverse Polish notaion.
+      we will get a list of operations and operands which are known as Reverse Polish notations.
    2. Load postings lists for the terms in the expression from the postings.txt file.
       For terms that appear multiple times in the query, we just load once to reduce memory cost.
    3. Divide the boolean expression into multiple groups based on the parsing result,
@@ -59,10 +59,10 @@ As for the search part, we use the following steps to process a request.
           3.3.1 For the term that needs to perform NOT operation, we will do it at this step.
 	  3.3.2 We optimize the merging process by processing the empty postings list separately,
 	        which will reduce the unnecessary copies, e.g. [] OR [1, 2, 3, 4, 5].
-	  3.3.3 We deal with the AND NOT operation seprately because it can be done in linear
+	  3.3.3 We deal with the AND NOT operation separately because it can be done in linear
 	        time complexity. We also implement the skip pointers to accelerate the merging.
-   4. After we get the result of the group, we add the result term into boolean expression
-      and keep on executing until we the final result of the expression.
+   4. After we get the result of the group, we add the result term into the rest boolean expression
+      and keep on executing until we get the final result of the expression.
    5. Print the final result and go to the next query.
 
 == Files included with this submission ==
@@ -73,9 +73,9 @@ and formatted correctly.
 
 * inverted_index.py: The file contains the InvertedIndex class which helps to build, load and dump the inverted index.
 * search_index.py: The file contains the SearchEngine class which helps to search the result of the boolean expression query.
-* index.py: The file in this assignment using InvertedIndex to build index and dump to file.
+* index.py: The file in this assignment using InvertedIndex to build the index and dump to file.
 * search.py: The file in this assignment using SearchEngine to get the result of the boolean expression query.
-* README.txt: This file contains this sentence which give an overview of this assignment.
+* README.txt: This file contains this sentence which gives an overview of this assignment.
 
 == Statement of individual work ==
 
@@ -98,9 +98,9 @@ We suggest that we should be graded as follows:
 * Good programming habits, clear comments
 * Good performance:
   * Try our best to avoid complementing postings list
-  * Avoid frequent copying data by processing empty list separately.
+  * Avoid frequent copying data by processing empty lists separately.
   * Optimize AND NOT operation separately.
-  * Avoid loading same term mutiple times to save time and space
+  * Avoid loading same term multiple times to save time and space
 
 == References ==
 
