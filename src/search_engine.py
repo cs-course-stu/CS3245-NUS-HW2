@@ -69,7 +69,6 @@ class SearchEngine:
             
             if last_type and not same:
                 group_no += 1
-                # print('inter %d: '%(group_no), end='')
                 self._exec_group(group_no, exec_stack, postings_lists)
 
             if cur_type:
@@ -101,20 +100,12 @@ class SearchEngine:
                 term_num += 1
             else:
                 term_num -= 1
-                # if last[1]:
-                #     print('~', end='')
-                # print("'%s'"%last[0], end='')
-                # if term_num:
-                #     print(' %s '%op, end='')
                 terms.append(last)
                 
             exec_stack.pop()
-        # print('')
             
         # change the execution order
-        # print("before: ", terms)
         self._optimize_merge(op, terms, postings_lists)
-        # print("after: ", terms)
 
         # merge the posting lists
         result = self._merge_group(op, terms, postings_lists)
@@ -175,6 +166,7 @@ class SearchEngine:
         result: return the merged list of the terms
     """
     def _merge_group(self, op, terms, postings_lists):
+        # get the fisrt postings list
         result_set = self._get_postings(terms[0], postings_lists)
 
         for i in range(1, len(terms)):
@@ -195,10 +187,8 @@ class SearchEngine:
             # get right set
             right_set = self._get_postings(terms[i], postings_lists)
 
-            # print("left_set: ", result_set)
-            # print("right_set: ", right_set)
+            # merge the postings lists
             result_set = self._merge_postings(result_set, exec_op, right_set)
-            # print("result_set: ", result_set)
 
         return result_set
 
@@ -215,18 +205,17 @@ class SearchEngine:
         postings1, pointers1 = set1[0], set1[1]
         postings2, pointers2 = set2[0], set2[1]
         len1, len2 = postings1.size, postings2.size
-        sk_len1, sk_len2 = pointers1.size, pointers2.size
         result = array.array('i')
 
-        def f1(doc, p, skip, sk_len, postings, pointers):
-            if skip < sk_len - 1 and p == pointers[skip]:
+        def f1(doc, p, skip, postings, pointers):
+            if skip < pointers.size - 1 and p == pointers[skip]:
                 skip += 1
                 if postings[pointers[skip]] <= doc:
                     return pointers[skip], skip
             return p + 1, skip
 
-        def f2(doc, p, skip, sk_len, postings, pointers):
-            if skip < sk_len - 1 and p == pointers[skip]:
+        def f2(doc, p, skip, postings, pointers):
+            if skip < pointers.size - 1 and p == pointers[skip]:
                 skip += 1
                 if postings[pointers[skip]] <= doc:
                     for i in range(p+1, pointers[skip]):
@@ -246,19 +235,19 @@ class SearchEngine:
                     result.append(doc1)
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
-                    p1, skip1 = f1(doc2, p1, skip1, sk_len1, postings1, pointers1)
+                    p1, skip1 = f1(doc2, p1, skip1, postings1, pointers1)
                 else:
-                    p2, skip2 = f1(doc1, p2, skip2, sk_len2, postings2, pointers2)
+                    p2, skip2 = f1(doc1, p2, skip2, postings2, pointers2)
         elif op == OpType.AND_NOT:
             while p1 < len1 and p2 < len2:
                 doc1, doc2 = postings1[p1], postings2[p2]
                 if doc1 < doc2:
                     result.append(doc1)
-                    p1, skip1 = f2(doc2, p1, skip1, sk_len1, postings1, pointers1)
+                    p1, skip1 = f2(doc2, p1, skip1, postings1, pointers1)
                 elif doc1 == doc2:
                     p1, p2 = p1 + 1, p2 + 1
                 else:
-                    p2, skip2 = f1(doc1, p2, skip2, sk_len2, postings2, pointers2)
+                    p2, skip2 = f1(doc1, p2, skip2, postings2, pointers2)
             f3(p1, len1, postings1)
         elif op == OpType.OR:
             while p1 < len1 and p2 < len2:
@@ -268,10 +257,10 @@ class SearchEngine:
                     p1, p2 = p1 + 1, p2 + 1
                 elif doc1 < doc2:
                     result.append(doc1)
-                    p1, skip1 = f2(doc2, p1, skip1, sk_len1, postings1, pointers1)
+                    p1, skip1 = f2(doc2, p1, skip1, postings1, pointers1)
                 else:
                     result.append(doc2)
-                    p2, skip2 = f2(doc1, p2, skip2, sk_len2, postings2, pointers2)
+                    p2, skip2 = f2(doc1, p2, skip2, postings2, pointers2)
             f3(p1, len1, postings1)
             f3(p2, len2, postings2)
 
@@ -288,6 +277,7 @@ class SearchEngine:
         postings: the postings list corresponding to the term
     """
     def _get_postings(self, term, postings_lists):
+        # get postings_list if there is not NOT operation
         if not term[1]:
             return postings_lists[term[0]]
 
@@ -339,7 +329,6 @@ class SearchEngine:
                     output_stack.append(op)
 
                 op_stack.append(token)
-
             else:
                 token = porter_stemmer.stem(token).lower()
                 output_stack.append(token)
@@ -380,20 +369,4 @@ class SearchEngine:
 if __name__ == '__main__':
 
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    # print(search_engine.search('NOT BAHIA AND COCOA'))
-    # print(search_engine.search('grower AND NOT relief'))
-    print(search_engine.search('NOT hamtaro'))
-    terms = [['a', True, 0],
-             ['b', True,  0],
-             ['c', True,  0],
-             ['d', True,  0],
-             ['e', True,  0]]
-    postings_lists = {
-        'a': (np.array([1,2,3], dtype=np.int32), 0),
-        'b': (np.array([1,2,3,4], dtype=np.int32), 0),
-        'c': (np.array([1,2,3], dtype=np.int32), 0),
-        'd': (np.array([1,2], dtype=np.int32), 0),
-        'e': (np.array([1], dtype=np.int32), 0),
-    }
-
-    print(search_engine._optimize_merge(OpType.AND, terms, postings_lists))
+    print(search_engine.search('grower AND NOT relief'))
