@@ -17,8 +17,8 @@ def build_index(in_dir, out_dict, out_postings):
     # print('indexing...')
     # initialize the class
     inverted_index = InvertedIndex(out_dict, out_postings)
-    inverted_index.build_index(
-        in_dir)
+    inverted_index.build_index(in_dir)
+
     # save to file
     inverted_index.SavetoFile()
 

@@ -15,27 +15,24 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     """
     print('running search on the queries...')
     # load the dictionary
-    #inverted_index = InvertedIndex(dict_file, postings_file)
-    #output: results_file output.txt
+
     # initialize the class
     search_engine = SearchEngine('dictionary.txt', 'postings.txt')
-    file_result = open(results_file, 'w')
-    with open(queries_file, 'r') as file:
-        i =0
+
+    with open(queries_file, 'r') as file, \
+         open(results_file, 'w') as file_result:
+        i = 0
         lines = file.readlines()
         for line in lines:            
-            i=i+1
+            i = i + 1
             result = search_engine.search(line)
-            #np.save(file_result, result, allow_pickle=False)
             result = map(str, result)
-            #print(type(result))
-            if line is not lines[-1]:
-                str1 = ' '.join(result) + '\n'
-            else:
+            if i == len(lines):
                 str1 = ' '.join(result)
-            #print(str1)
+            else:
+                str1 = ' '.join(result) + '\n'
             file_result.write(str1)
-        #print(i)
+
     return
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None
