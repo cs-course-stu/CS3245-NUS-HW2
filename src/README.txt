@@ -54,6 +54,12 @@ List the files in your submission here and provide a short 1 line
 description of each file.  Make sure your submission's files are named
 and formatted correctly.
 
+* inverted_index.py: The file contains the InvertedIndex class which helps to build, load and dump the inverted index.
+* search_index.py: The file contains the SearchEngine class which helps to search the result of the boolean expression query.
+* index.py: The file in this assignment using InvertedIndex to build index and dump to file.
+* search.py: The file in this assignment using SearchEngine to get the result of the boolean expression query.
+* README.txt: This file contains this sentence which give an overview of this assignment.
+
 == Statement of individual work ==
 
 Please put a "x" (without the double quotes) into the bracket of the appropriate statement.
@@ -71,9 +77,17 @@ assignment, because of the following reason:
 
 We suggest that we should be graded as follows:
 
-* 
+* Complete all the requirements
+* Good programming habits, clear comments
+* Good performance:
+  * Try our best to avoid complementing postings list
+  * Avoid frequent copying data by processing empty list separately.
+  * Optimize AND NOT operation separately.
+  * Avoid loading same term mutiple times to save time and space
 
 == References ==
 
-<Please list any websites and/or people you consulted with for this
-assignment and state their role>
+* [To search some Python functions](https://devdocs.io/python/)
+* [Numpy Reference](https://docs.scipy.org/doc/numpy/reference/)
+* [NLTK API](https://www.nltk.org/api/nltk.html)
+* [Shunting-yard algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm)
