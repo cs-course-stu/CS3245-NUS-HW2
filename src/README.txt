@@ -18,7 +18,24 @@ save the results into file. We adopt the object-oriented programming approach to
 the whole project, which greatly reduces the coupling between two parts.
 
 [Index]
+As for the index part, we use the following steps to process a request.
+Build Index:
+    1. Read every line within each file in the directory and do tokenization, stemming.
+    2. Add the cleaned tokens to the dictionary and the doc id to the postings list
+    3. Create every single skip pointer list according to the length of the total_doc.
+	We do this because of two reasons:
+	    1. reduce redundancy of each word when creating posting list. (words with the same doc frequency have same skip pointers).
+	    2. no create too many intermediate skip pointer list when do searching.
 
+Save to File:
+    1. Save all skip pointer list to posting file
+    2. Read the postings, then sort the posting list of each word, save this to file and record the position in the file
+    3. After saving postings, save the total doc id and the dictionary including words and position in the postings file to dictionary file.
+
+Load Postings:
+    1. Seek the position from dictionary file of word.
+    2. Load the posting of word
+    3. Operate the length of posting to generate skip pointers
 
 [Search]
 As for the search part, we use the following steps to process a request.
